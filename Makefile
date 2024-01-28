@@ -4,6 +4,12 @@ test: reports
 reports:
 	mkdir reports -p
 
+server:
+	go build -race -o bin/server cmd/server/*.go
+
+demo:
+	go run cmd/demo/main.go
+
 coverage:
 	go tool cover -html=reports/report.cover -o reports/coverage.html
 	@xdg-open reports/coverage.html 2>/dev/null
