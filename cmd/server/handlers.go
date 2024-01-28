@@ -5,6 +5,8 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	game "gitlab.com/Yoolayn/connect_four/internal/logic"
 )
 
 func addHandlers(r *gin.Engine) {
@@ -14,7 +16,29 @@ func addHandlers(r *gin.Engine) {
 	r.GET("/users", getUsers)
 
 	r.POST("/users", decoder(new(User)), newUser)
-	r.POST("/secretsauce", decoder(new(repeatStruct)), authorize, repeat)
+	r.POST("/secretsauce", decoder(new(repeatStruct)), authorizer(func(bdy interface{}) (Credentials, error) {
+		body, ok := bdy.(*repeatStruct)
+		if !ok {
+			return Credentials{}, ErrType
+		}
+		return body.Credentials, nil
+	}), repeat)
+	r.POST("/games", decoder(new(Credentials)), authorizer(simpleCred), newGame)
+}
+
+func simpleCred(bdy interface{}) (Credentials, error) {
+	body, ok := bdy.(*Credentials)
+	if !ok {
+		return Credentials{}, ErrType
+	}
+	return *body, nil
+}
+
+func newGame(c *gin.Context) {
+	game := game.MakeBoard()
+	id := uuid.New()
+	games[id] = game
+	c.String(http.StatusCreated, id.String())
 }
 
 func newUser(c *gin.Context) {

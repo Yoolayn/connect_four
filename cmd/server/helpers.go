@@ -24,27 +24,34 @@ func decoder(bdy interface{}) func(*gin.Context) {
 	}
 }
 
-func authorize(c *gin.Context) {
-	bdy, ok := c.Get("decodedbody")
+func authorizer(fn func(bdy any) (Credentials, error)) func(*gin.Context) {
+	return func(c *gin.Context) {
+		authorize(c, fn)
+	}
+}
+
+func authorize(c *gin.Context, fn func(bdy any) (Credentials, error)) {
+	paramBdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
 		log.Error("authorize", "get body", ok)
 		return
 	}
-	body, ok := bdy.(*repeatStruct)
-	if !ok {
-		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Error("authorize", "type assertion", ok)
+
+	body, err := fn(paramBdy)
+	if err != nil {
+		c.AbortWithStatusJSON(newErr(err))
+		log.Error("authorize", "create credentials", err)
 		return
 	}
 
-	usr, ok := users.get(body.Credentials.Login)
+	usr, ok := users.get(body.Login)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
 		log.Error("authorize", "get login", ok)
 		return
 	}
-	err := bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(body.Credentials.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(body.Password))
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
 		log.Error("authorize", "password match", err)

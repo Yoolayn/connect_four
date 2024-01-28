@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	games map[uuid.UUID]game.Board
+	games = make(map[uuid.UUID]game.Board, 1)
 	users Users
 )
 

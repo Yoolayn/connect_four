@@ -17,6 +17,11 @@ type User struct {
 	Password string `json:"password"`
 }
 
+type Credentials struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
 type Users []User
 
 func (u *User) Encrypt() error {
