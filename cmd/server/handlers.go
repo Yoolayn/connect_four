@@ -19,6 +19,16 @@ func addHandlers(r *gin.Engine) {
 	r.GET("/games/:id", getGame)
 
 	r.POST("/users", decoder(new(User)), newUser)
+	r.POST("/games", decoder(new(Credentials)), authorizer(simpleCred), newGame)
+	r.POST("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(true))
+
+	r.PUT("/games/:id/move")
+	// r.PUT("/games/:id")
+	// r.PUT("/users/:login/password")
+	// r.PUT("/users/:login/name")
+
+	r.DELETE("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(false))
+
 	r.POST("/secretsauce", decoder(new(repeatStruct)), authorizer(func(bdy interface{}) (Credentials, error) {
 		body, ok := bdy.(*repeatStruct)
 		if !ok {
@@ -26,7 +36,6 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), repeat)
-	r.POST("/games", decoder(new(Credentials)), authorizer(simpleCred), newGame)
 }
 
 func simpleCred(bdy interface{}) (Credentials, error) {
@@ -37,10 +46,40 @@ func simpleCred(bdy interface{}) (Credentials, error) {
 	return *body, nil
 }
 
+func changeAdmin(to bool) func(c *gin.Context) {
+	var name string
+	if to {
+		name = "setAdmin"
+	} else {
+		name = "unsetAdmin"
+	}
+	return func(c *gin.Context) {
+		login, ok := c.Params.Get("login")
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrInternal))
+			log.Debug(name, "get login param", "login param not found")
+			return
+		}
+
+		usr, ok := users.get(login)
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+			log.Debug(name, "get user", ErrUserNotFound)
+			return
+		}
+		users.Update(usr.MakeAdmin(to))
+	}
+}
+
 func newGame(c *gin.Context) {
 	game := game.MakeBoard()
 	id := uuid.New()
-	games[id] = game
+	games[id] = Game{
+		Board:   game,
+		Title:   "",
+		Player1: Player{},
+		Player2: Player{},
+	}
 	c.String(http.StatusCreated, id.String())
 }
 

@@ -24,13 +24,21 @@ func decoder(bdy interface{}) func(*gin.Context) {
 	}
 }
 
-func authorizer(fn func(bdy any) (Credentials, error)) func(*gin.Context) {
-	return func(c *gin.Context) {
+func authorizer(fn func(bdy any) (Credentials, error), admin ...bool) func(*gin.Context) {
+	auth := func(c *gin.Context) {
 		authorize(c, fn)
 	}
+	if len(admin) > 0 && admin[0] {
+		auth = func(c *gin.Context) {
+			authorize(c, fn, func(u User) bool {
+				return u.IsAdmin
+			})
+		}
+	}
+	return auth
 }
 
-func authorize(c *gin.Context, fn func(bdy any) (Credentials, error)) {
+func authorize(c *gin.Context, fn func(bdy any) (Credentials, error), admin ...func(u User) bool) {
 	paramBdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
@@ -55,5 +63,14 @@ func authorize(c *gin.Context, fn func(bdy any) (Credentials, error)) {
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
 		log.Error("authorize", "password match", err)
+		return
+	}
+
+	if len(admin) > 0 {
+		ok := admin[0](*usr)
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrForbidden))
+			log.Error("authorize", "admin requirement", "failed")
+		}
 	}
 }

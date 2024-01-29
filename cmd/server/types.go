@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	game "gitlab.com/Yoolayn/connect_four/internal/logic"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,17 +22,31 @@ type repeatStruct struct {
 type User struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
-	Name     string `json:"name,omitempty"`
-	isAdmin  bool
+	Name     string `json:"name"`
+	IsAdmin  bool   `json:"isadmin"`
+}
+
+type Player struct {
+	User  User   `json:"user"`
+	Color string `json:"color"`
+}
+
+type Game struct {
+	Board   game.Board `json:"board"`
+	Title   string     `json:"title"`
+	Player1 Player     `json:"player1"`
+	Player2 Player     `json:"player2"`
 }
 
 func (u User) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		Login string `json:"login"`
-		Name  string `json:"name,omitempty"`
+		Login   string `json:"login"`
+		Name    string `json:"name,omitempty"`
+		IsAdmin bool   `json:"admin"`
 	}{
-		Login: u.Login,
-		Name: u.Name,
+		Login:   u.Login,
+		Name:    u.Name,
+		IsAdmin: u.IsAdmin,
 	})
 }
 
@@ -41,6 +56,11 @@ type Credentials struct {
 }
 
 type Users []User
+
+func (u User) MakeAdmin(status bool) User {
+	u.IsAdmin = status
+	return u
+}
 
 func (u *User) FixEmpty() {
 	if u.Name == "" {
@@ -58,13 +78,21 @@ func (u *User) Encrypt() error {
 	return nil
 }
 
-func (u Users) get(login string) (User, bool) {
+func (u Users) get(login string) (*User, bool) {
 	for _, v := range u {
 		if v.Login == login {
-			return v, true
+			return &v, true
 		}
 	}
-	return User{}, false
+	return &User{}, false
+}
+
+func (u *Users) Update(user User) {
+	for i, v := range *u {
+		if v.Login == user.Login {
+			(*u)[i] = user
+		}
+	}
 }
 
 func (u *Users) add(usr User) {

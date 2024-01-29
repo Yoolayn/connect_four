@@ -1,23 +1,24 @@
 * api
-  - ( ) new user:            POST         \/users
-  - ( ) new game:            POST         \/games
-  - ( ) new admin:           POST         \/admins/:login
-  - ( ) idk:                 POST         \/
+  - (x) new user:            POST         \/users
+  - (x) new game:            POST         \/games
+  - (x) new admin:           POST         \/admins/:login
+  - ( ) join game:           POST         \/games/:id
 
-  - ( ) user:                GET          \/users/:id
-  - ( ) game:                GET          \/games/:id
-  - ( ) users:               GET          \/users
-  - ( ) games:               GET          \/games
+  - (x) user:                GET          \/users/:id
+  - (x) game:                GET          \/games/:id
+  - (x) users:               GET          \/users
+  - (x) games:               GET          \/games
 
   - ( ) make move:           PUT          \/games/:id/move
-  - ( ) update game title:   PUT          \/games/id
+  - ( ) update game title:   PUT          \/games/:id
   - ( ) change password:     PUT          \/users/:login/password
   - ( ) change name:         PUT          \/users/:login/name
 
   - ( ) user:                DELETE       \/users/:login
   - ( ) game:                DELETE       \/games/:id
-  - ( ) admin:               DELETE       \/admins/:login
-  - ( ) idk:                 DELETE       \/
+  - (x) admin:               DELETE       \/admins/:login
+  - ( ) leave game:          DELETE       \/games/:id/leave
 
 * features
   - ( ) add mongo
+  - ( ) allow to save logs to file

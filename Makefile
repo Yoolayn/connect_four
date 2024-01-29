@@ -1,9 +1,6 @@
 test: reports
 	go test -v -cover ./... -coverprofile=reports/report.cover
 
-reports:
-	mkdir reports -p
-
 server:
 	go build -race -o bin/server cmd/server/*.go
 

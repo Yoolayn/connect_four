@@ -14,6 +14,7 @@ var (
 	ErrPassTooLong   = errors.New("password is too long")
 	ErrParsing       = errors.New("failed to parse uuid")
 	ErrGameNotFound  = errors.New("game not found")
+	ErrForbidden     = errors.New("forbidden!")
 )
 
 var errs = map[error]int{
@@ -25,6 +26,7 @@ var errs = map[error]int{
 	ErrPassTooLong:   http.StatusBadRequest,
 	ErrParsing:       http.StatusBadRequest,
 	ErrGameNotFound:  http.StatusNotFound,
+	ErrForbidden:     http.StatusForbidden,
 }
 
 func newErr(err error) (int, interface{}) {

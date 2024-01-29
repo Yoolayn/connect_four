@@ -12,12 +12,11 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	game "gitlab.com/Yoolayn/connect_four/internal/logic"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	games = make(map[uuid.UUID]game.Board, 1)
+	games = make(map[uuid.UUID]Game, 1)
 	users Users
 )
 
@@ -38,7 +37,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	users = append(users, User{Login: "login", Password: string(hash)})
+	users = append(users, User{Login: "login", Password: string(hash), IsAdmin: true})
 
 	srv := http.Server{
 		Addr:    ":8080",
