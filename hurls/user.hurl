@@ -7,3 +7,5 @@ POST http://localhost:8080/users
     "password": "password"
 }
 HTTP 201
+
+GET http://localhost:8080/users/user2

@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	game "gitlab.com/Yoolayn/connect_four/internal/logic"
@@ -20,8 +21,17 @@ var (
 	users Users
 )
 
+func corsConfig() cors.Config {
+	config := cors.DefaultConfig()
+	config.AllowMethods = []string{"PUT", "POST", "GET", "DELETE", "OPTIONS"}
+	config.AllowOrigins = []string{"*"}
+
+	return config
+}
+
 func main() {
 	r := gin.Default()
+	r.Use(cors.New(corsConfig()))
 	addHandlers(r)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("pass"), bcrypt.MinCost)

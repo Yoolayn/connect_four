@@ -14,6 +14,9 @@ func addHandlers(r *gin.Engine) {
 		c.String(http.StatusOK, "Hello, World!")
 	})
 	r.GET("/users", getUsers)
+	r.GET("/users/:login", getUser)
+	r.GET("/games", getGames)
+	r.GET("/games/:id", getGame)
 
 	r.POST("/users", decoder(new(User)), newUser)
 	r.POST("/secretsauce", decoder(new(repeatStruct)), authorizer(func(bdy interface{}) (Credentials, error) {
@@ -45,53 +48,100 @@ func newUser(c *gin.Context) {
 	bdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Error("newUser", "get body", ok)
+		log.Debug("newUser", "get body", ok)
 		return
 	}
 
 	body, ok := bdy.(*User)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Error("newUser", "type assertion", ok)
+		log.Debug("newUser", "type assertion", ok)
 		return
 	}
 
 	log.SetLevel(log.DebugLevel)
 	log.Debug("newUser", "login", body.Login)
+	log.Debug("newUser", "password", body.Password)
 	_, ok = users.get(body.Login)
 	if ok {
 		c.AbortWithStatusJSON(newErr(ErrUserTaken))
-		log.Error("newUser", "user exists", ok)
+		log.Debug("newUser", "user exists", ok)
 		return
 	}
 
 	err := body.Encrypt()
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(ErrPassTooLong))
-		log.Error("NewUser", "encryption", err)
+		log.Debug("newUser", "encryption", err)
 		return
 	}
+	body.FixEmpty()
 
 	users.add(*body)
 	c.Status(http.StatusCreated)
+}
+
+func getGame(c *gin.Context) {
+	id, ok := c.Params.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		log.Debug("getGame", "get id", ok)
+		return
+	}
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		c.AbortWithStatusJSON(newErr(ErrParsing))
+		log.Debug("getGame", "parsing", err)
+		return
+	}
+
+	game, ok := games[uid]
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
+		log.Debug("getGame", "getting game", ok)
+	}
+	c.JSON(http.StatusOK, game)
+}
+
+func getGames(c *gin.Context) {
+	c.JSON(http.StatusOK, games)
 }
 
 func getUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+func getUser(c *gin.Context) {
+	login, ok := c.Params.Get("login")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		log.Debug("getUser", "get id", ok)
+		return
+	}
+
+	user, ok := users.get(login)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+		log.Debug("getUser", "get user", "user not found")
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
 func repeat(c *gin.Context) {
 	bdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Error("repeat", "get body", ok)
+		log.Debug("repeat", "get body", ok)
 		return
 	}
 
 	body, ok := bdy.(*repeatStruct)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Error("repeat", "type assertion", ok)
+		log.Debug("repeat", "type assertion", ok)
 		return
 	}
 

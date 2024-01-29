@@ -12,6 +12,8 @@ var (
 	ErrType          = errors.New("bad type assertion")
 	ErrUserTaken     = errors.New("user name is taken")
 	ErrPassTooLong   = errors.New("password is too long")
+	ErrParsing       = errors.New("failed to parse uuid")
+	ErrGameNotFound  = errors.New("game not found")
 )
 
 var errs = map[error]int{
@@ -21,6 +23,8 @@ var errs = map[error]int{
 	ErrType:          http.StatusInternalServerError,
 	ErrUserTaken:     http.StatusConflict,
 	ErrPassTooLong:   http.StatusBadRequest,
+	ErrParsing:       http.StatusBadRequest,
+	ErrGameNotFound:  http.StatusNotFound,
 }
 
 func newErr(err error) (int, interface{}) {
