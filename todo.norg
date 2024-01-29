@@ -9,7 +9,7 @@
   - (x) users:               GET          \/users
   - (x) games:               GET          \/games
 
-  - ( ) make move:           PUT          \/games/:id/move
+  - (x) make move:           PUT          \/games/:id/move
   - ( ) update game title:   PUT          \/games/:id
   - ( ) change password:     PUT          \/users/:login/password
   - ( ) change name:         PUT          \/users/:login/name

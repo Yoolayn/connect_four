@@ -19,6 +19,11 @@ type repeatStruct struct {
 	} `json:"credentials"`
 }
 
+type Move struct {
+	Credentials Credentials `json:"credentials"`
+	Row         int         `json:"row"`
+}
+
 type User struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`

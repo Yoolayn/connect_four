@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	game "gitlab.com/Yoolayn/connect_four/internal/logic"
+	connectFour "gitlab.com/Yoolayn/connect_four/internal/logic"
 )
 
 func addHandlers(r *gin.Engine) {
@@ -22,7 +22,14 @@ func addHandlers(r *gin.Engine) {
 	r.POST("/games", decoder(new(Credentials)), authorizer(simpleCred), newGame)
 	r.POST("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(true))
 
-	r.PUT("/games/:id/move")
+	r.PUT("/games/:id/move", decoder(new(Move)), authorizer(func(bdy interface{}) (Credentials, error) {
+		body, ok := bdy.(*Move)
+		if !ok {
+			return Credentials{}, ErrType
+		}
+
+		return body.Credentials, nil
+	}), makeMove)
 	// r.PUT("/games/:id")
 	// r.PUT("/users/:login/password")
 	// r.PUT("/users/:login/name")
@@ -36,6 +43,68 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), repeat)
+}
+
+func makeMove(c *gin.Context) {
+	id, ok := c.Params.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		log.Debug("makeMove", "get login param", "login param not found")
+		return
+	}
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		c.AbortWithStatusJSON(newErr(ErrParsing))
+		log.Debug("makeMove", "parse uuid", err)
+		return
+	}
+
+	game, ok := games[uid]
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
+		log.Debug("makeMove", "find game", ok)
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		log.Debug("makeMove", "get body", ok)
+		return
+	}
+
+	bdy, ok := body.(*Move)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrType))
+		log.Debug("makeMove", "convert type", ok)
+		return
+	}
+
+	if bdy.Row > 6 || bdy.Row < 0 {
+		c.AbortWithStatusJSON(newErr(ErrOutOfBound))
+		return
+	}
+
+	var chkr connectFour.Checker
+	if bdy.Credentials.Login == game.Player1.User.Login {
+		chkr = connectFour.Checker{Color: game.Player1.Color}
+	} else if bdy.Credentials.Login == game.Player2.User.Login {
+		chkr = connectFour.Checker{Color: game.Player2.Color}
+	}
+
+	if chkr.Color == "" {
+		c.AbortWithStatusJSON(newErr(ErrNotInGame))
+		return
+	}
+
+	ok = game.Board.Claim(chkr, bdy.Row)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrFieldTaken))
+		return
+	}
+
+	games[uid] = game
 }
 
 func simpleCred(bdy interface{}) (Credentials, error) {
@@ -72,11 +141,11 @@ func changeAdmin(to bool) func(c *gin.Context) {
 }
 
 func newGame(c *gin.Context) {
-	game := game.MakeBoard()
+	game := connectFour.MakeBoard()
 	id := uuid.New()
 	games[id] = Game{
 		Board:   game,
-		Title:   "",
+		Title:   "New Game",
 		Player1: Player{},
 		Player2: Player{},
 	}

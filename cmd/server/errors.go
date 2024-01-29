@@ -15,6 +15,9 @@ var (
 	ErrParsing       = errors.New("failed to parse uuid")
 	ErrGameNotFound  = errors.New("game not found")
 	ErrForbidden     = errors.New("forbidden!")
+	ErrNotInGame     = errors.New("user is not in the game")
+	ErrOutOfBound    = errors.New("selected row would be out of bounds")
+	ErrFieldTaken    = errors.New("field is taken")
 )
 
 var errs = map[error]int{
@@ -27,6 +30,9 @@ var errs = map[error]int{
 	ErrParsing:       http.StatusBadRequest,
 	ErrGameNotFound:  http.StatusNotFound,
 	ErrForbidden:     http.StatusForbidden,
+	ErrNotInGame:     http.StatusBadRequest,
+	ErrOutOfBound:    http.StatusBadRequest,
+	ErrFieldTaken:    http.StatusBadRequest,
 }
 
 func newErr(err error) (int, interface{}) {
