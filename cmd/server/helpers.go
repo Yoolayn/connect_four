@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/charmbracelet/log"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -12,7 +12,7 @@ func decodeBody(c *gin.Context, body interface{}) {
 	err := json.NewDecoder(c.Request.Body).Decode(body)
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Error("decodeBody", "json decode", err)
+		logger.Error("decodeBody", "json decode", err)
 		return
 	}
 	c.Set("decodedbody", body)
@@ -22,6 +22,24 @@ func decoder(bdy interface{}) func(*gin.Context) {
 	return func(c *gin.Context) {
 		decodeBody(c, bdy)
 	}
+}
+
+func idToUUID(c *gin.Context, name string) (uuid.UUID, bool) {
+	id, ok := c.Params.Get("id")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug(name, "get login param", "login param not found")
+		return uuid.Nil, false
+	}
+
+	uid, err := uuid.Parse(id)
+	if err != nil {
+		c.AbortWithStatusJSON(newErr(ErrParsing))
+		logger.Debug(name, "parse uuid", err)
+		return uuid.Nil, false
+	}
+
+	return uid, true
 }
 
 func authorizer(fn func(bdy any) (Credentials, error), admin ...bool) func(*gin.Context) {
@@ -42,35 +60,35 @@ func authorize(c *gin.Context, fn func(bdy any) (Credentials, error), admin ...f
 	paramBdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Error("authorize", "get body", ok)
+		logger.Error("authorize", "get body", ok)
 		return
 	}
 
 	body, err := fn(paramBdy)
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(err))
-		log.Error("authorize", "create credentials", err)
+		logger.Error("authorize", "create credentials", err)
 		return
 	}
 
-	usr, ok := users.get(body.Login)
+	usr, ok := collections["users"].Get(body.Login)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
-		log.Error("authorize", "get login", ok)
+		logger.Error("authorize", "get login", ok)
 		return
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(body.Password))
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
-		log.Error("authorize", "password match", err)
+		logger.Error("authorize", "password match", err)
 		return
 	}
 
 	if len(admin) > 0 {
-		ok := admin[0](*usr)
+		ok := admin[0](usr)
 		if !ok {
 			c.AbortWithStatusJSON(newErr(ErrForbidden))
-			log.Error("authorize", "admin requirement", "failed")
+			logger.Error("authorize", "admin requirement", "failed")
 		}
 	}
 }

@@ -14,11 +14,11 @@
   - ( ) change password:     PUT          \/users/:login/password
   - ( ) change name:         PUT          \/users/:login/name
 
-  - ( ) user:                DELETE       \/users/:login
+  - (x) user:                DELETE       \/users/:login
   - ( ) game:                DELETE       \/games/:id
   - (x) admin:               DELETE       \/admins/:login
   - ( ) leave game:          DELETE       \/games/:id/leave
 
 * features
-  - ( ) add mongo
-  - ( ) allow to save logs to file
+  - (x) add mongo
+  - (x) allow to save logs to file

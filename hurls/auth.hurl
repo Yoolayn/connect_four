@@ -1,4 +1,4 @@
-POST http://localhost:8080/secretsauce
+POST http://localhost:8080/authtest
 {
     "rest": {
         "hello": "world"

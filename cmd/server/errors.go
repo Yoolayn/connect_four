@@ -16,8 +16,12 @@ var (
 	ErrGameNotFound  = errors.New("game not found")
 	ErrForbidden     = errors.New("forbidden!")
 	ErrNotInGame     = errors.New("user is not in the game")
-	ErrOutOfBound    = errors.New("selected row would be out of bounds")
+	ErrOutOfBounds   = errors.New("selected row would be out of bounds")
 	ErrFieldTaken    = errors.New("field is taken")
+	ErrUpdateFailed  = errors.New("update in database failed")
+	ErrAddFailed     = errors.New("failed adding to database")
+	ErrGetAllFailed  = errors.New("failed getting resources from database")
+	ErrGameFull      = errors.New("game is full!")
 )
 
 var errs = map[error]int{
@@ -31,8 +35,12 @@ var errs = map[error]int{
 	ErrGameNotFound:  http.StatusNotFound,
 	ErrForbidden:     http.StatusForbidden,
 	ErrNotInGame:     http.StatusBadRequest,
-	ErrOutOfBound:    http.StatusBadRequest,
+	ErrOutOfBounds:   http.StatusBadRequest,
 	ErrFieldTaken:    http.StatusBadRequest,
+	ErrUpdateFailed:  http.StatusInternalServerError,
+	ErrAddFailed:     http.StatusInternalServerError,
+	ErrGetAllFailed:  http.StatusInternalServerError,
+	ErrGameFull:      http.StatusBadRequest,
 }
 
 func newErr(err error) (int, interface{}) {

@@ -10,9 +10,6 @@ import (
 )
 
 func addHandlers(r *gin.Engine) {
-	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "Hello, World!")
-	})
 	r.GET("/users", getUsers)
 	r.GET("/users/:login", getUser)
 	r.GET("/games", getGames)
@@ -21,6 +18,13 @@ func addHandlers(r *gin.Engine) {
 	r.POST("/users", decoder(new(User)), newUser)
 	r.POST("/games", decoder(new(Credentials)), authorizer(simpleCred), newGame)
 	r.POST("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(true))
+	r.POST("/games/:id", decoder(new(Join)), authorizer(func(bdy interface{}) (Credentials, error) {
+		body, ok := bdy.(*Join)
+		if !ok {
+			return Credentials{}, ErrType
+		}
+		return body.Credentials, nil
+		}), joinGame)
 
 	r.PUT("/games/:id/move", decoder(new(Move)), authorizer(func(bdy interface{}) (Credentials, error) {
 		body, ok := bdy.(*Move)
@@ -30,13 +34,25 @@ func addHandlers(r *gin.Engine) {
 
 		return body.Credentials, nil
 	}), makeMove)
-	// r.PUT("/games/:id")
+	r.PUT("/games/:id", decoder(new(Title)), authorizer(func(bdy interface{}) (Credentials, error) {
+		title, ok := bdy.(*Title)
+		if !ok {
+			return Credentials{}, ErrType
+		}
+		return title.Credentials, nil
+	}), updateTitle)
 	// r.PUT("/users/:login/password")
 	// r.PUT("/users/:login/name")
 
 	r.DELETE("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(false))
+	r.DELETE("/users/:login", decoder(new(Credentials)), authorizer(simpleCred), deleteUser)
+	// r.DELETE("/games/:id")
+	// r.DELETE("/games/:id/leave")
 
-	r.POST("/secretsauce", decoder(new(repeatStruct)), authorizer(func(bdy interface{}) (Credentials, error) {
+	r.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "Hello, World!")
+	})
+	r.POST("/authtest", decoder(new(repeatStruct)), authorizer(func(bdy interface{}) (Credentials, error) {
 		body, ok := bdy.(*repeatStruct)
 		if !ok {
 			return Credentials{}, ErrType
@@ -45,44 +61,147 @@ func addHandlers(r *gin.Engine) {
 	}), repeat)
 }
 
-func makeMove(c *gin.Context) {
-	id, ok := c.Params.Get("id")
+func joinGame(c *gin.Context) {
+	uid, ok := idToUUID(c, "joinGame")
 	if !ok {
-		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("makeMove", "get login param", "login param not found")
-		return
-	}
-
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		c.AbortWithStatusJSON(newErr(ErrParsing))
-		log.Debug("makeMove", "parse uuid", err)
 		return
 	}
 
 	game, ok := games[uid]
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
-		log.Debug("makeMove", "find game", ok)
+		log.Debug("joinGame", "get game", ErrGameNotFound)
 		return
 	}
 
 	body, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("makeMove", "get body", ok)
+		log.Debug("joinGame", "get body", "failed to get the body")
+		return
+	}
+
+	bdy, ok := body.(Credentials)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrType))
+		log.Debug("joinGame", "type cast", ErrType)
+		return
+	}
+
+	usr, ok := collections["users"].Get(bdy.Login)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		log.Debug("joinGame", "get user", "failed getting user from db")
+		return
+	}
+
+	response := struct {
+		Position int       `json:"position"`
+		Game     uuid.UUID `json:"game"`
+	}{}
+
+	if game.Player1.User.Login == "" {
+		game.Player1.User = usr
+		response.Position = 1
+	} else if game.Player2.User.Login == "" {
+		game.Player2.User = usr
+		response.Position = 2
+	} else {
+		c.AbortWithStatusJSON(newErr(ErrGameFull))
+		return
+	}
+
+	response.Game = uid
+
+	c.JSON(http.StatusOK, response)
+
+}
+
+func updateTitle(c *gin.Context) {
+	uid, ok := idToUUID(c, "updateTitle")
+	if !ok {
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("updateTitle", "get body", ok)
+		return
+	}
+
+	bdy, ok := body.(*Title)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrType))
+		logger.Debug("updateTitle", "convert type", ok)
+		return
+	}
+
+	game, ok := games[uid]
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
+		logger.Debug("updateTitle", "find game", ErrGameNotFound)
+		return
+	}
+
+	if bdy.Credentials.Login != game.Player1.User.Login || bdy.Credentials.Login != game.Player2.User.Login {
+		c.AbortWithStatusJSON(newErr(ErrNotInGame))
+		logger.Debug("updateTitle", "change title", ErrNotInGame)
+		return
+	}
+
+	game.Title = bdy.Title
+	games[uid] = game
+	c.Status(http.StatusAccepted)
+}
+
+func deleteUser(c *gin.Context) {
+	login, ok := c.Params.Get("login")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("deleteUser", "get login param", "login param not found")
+		return
+	}
+
+	ok = collections["users"].Delete(login)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+		logger.Debug("deleteUser", "find user to delete", ok)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func makeMove(c *gin.Context) {
+	uid, ok := idToUUID(c, "makeMove")
+	if !ok {
+		return
+	}
+
+	game, ok := games[uid]
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
+		logger.Debug("makeMove", "find game", ok)
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("makeMove", "get body", ok)
 		return
 	}
 
 	bdy, ok := body.(*Move)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Debug("makeMove", "convert type", ok)
+		logger.Debug("makeMove", "convert type", ok)
 		return
 	}
 
 	if bdy.Row > 6 || bdy.Row < 0 {
-		c.AbortWithStatusJSON(newErr(ErrOutOfBound))
+		c.AbortWithStatusJSON(newErr(ErrOutOfBounds))
 		return
 	}
 
@@ -126,17 +245,24 @@ func changeAdmin(to bool) func(c *gin.Context) {
 		login, ok := c.Params.Get("login")
 		if !ok {
 			c.AbortWithStatusJSON(newErr(ErrInternal))
-			log.Debug(name, "get login param", "login param not found")
+			logger.Debug(name, "get login param", "login param not found")
 			return
 		}
 
-		usr, ok := users.get(login)
+		usr, ok := collections["users"].Get(login)
 		if !ok {
 			c.AbortWithStatusJSON(newErr(ErrUserNotFound))
-			log.Debug(name, "get user", ErrUserNotFound)
+			logger.Debug(name, "get user", ErrUserNotFound)
 			return
 		}
-		users.Update(usr.MakeAdmin(to))
+
+		admin := usr.MakeAdmin(to)
+		ok = collections["users"].Update(admin.Login, admin)
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrUpdateFailed))
+			logger.Debug(name, "update user", ErrUpdateFailed)
+			return
+		}
 	}
 }
 
@@ -156,58 +282,54 @@ func newUser(c *gin.Context) {
 	bdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("newUser", "get body", ok)
+		logger.Debug("newUser", "get body", ok)
 		return
 	}
 
 	body, ok := bdy.(*User)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Debug("newUser", "type assertion", ok)
+		logger.Debug("newUser", "type assertion", ok)
 		return
 	}
 
-	log.SetLevel(log.DebugLevel)
-	log.Debug("newUser", "login", body.Login)
-	log.Debug("newUser", "password", body.Password)
-	_, ok = users.get(body.Login)
+	logger.Debug("newUser", "login", body.Login)
+	logger.Debug("newUser", "password", body.Password)
+
+	_, ok = collections["users"].Get(body.Login)
 	if ok {
 		c.AbortWithStatusJSON(newErr(ErrUserTaken))
-		log.Debug("newUser", "user exists", ok)
+		logger.Debug("newUser", "user exists", ok)
 		return
 	}
 
 	err := body.Encrypt()
 	if err != nil {
 		c.AbortWithStatusJSON(newErr(ErrPassTooLong))
-		log.Debug("newUser", "encryption", err)
+		logger.Debug("newUser", "encryption", err)
 		return
 	}
 	body.FixEmpty()
 
-	users.add(*body)
+	ok = collections["users"].Add(*body)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrAddFailed))
+		return
+	}
+
 	c.Status(http.StatusCreated)
 }
 
 func getGame(c *gin.Context) {
-	id, ok := c.Params.Get("id")
+	uid, ok := idToUUID(c, "getGame")
 	if !ok {
-		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("getGame", "get id", ok)
-		return
-	}
-
-	uid, err := uuid.Parse(id)
-	if err != nil {
-		c.AbortWithStatusJSON(newErr(ErrParsing))
-		log.Debug("getGame", "parsing", err)
 		return
 	}
 
 	game, ok := games[uid]
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
-		log.Debug("getGame", "getting game", ok)
+		logger.Debug("getGame", "getting game", ok)
 	}
 	c.JSON(http.StatusOK, game)
 }
@@ -217,6 +339,13 @@ func getGames(c *gin.Context) {
 }
 
 func getUsers(c *gin.Context) {
+	var users []User
+	ok := collections["users"].GetAll(&users)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGetAllFailed))
+		return
+	}
+
 	c.JSON(http.StatusOK, users)
 }
 
@@ -224,14 +353,14 @@ func getUser(c *gin.Context) {
 	login, ok := c.Params.Get("login")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("getUser", "get id", ok)
+		logger.Debug("getUser", "get id", ok)
 		return
 	}
 
-	user, ok := users.get(login)
+	user, ok := collections["users"].Get(login)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
-		log.Debug("getUser", "get user", "user not found")
+		logger.Debug("getUser", "get user", "user not found")
 		return
 	}
 
@@ -242,14 +371,14 @@ func repeat(c *gin.Context) {
 	bdy, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("repeat", "get body", ok)
+		logger.Debug("repeat", "get body", ok)
 		return
 	}
 
 	body, ok := bdy.(*repeatStruct)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Debug("repeat", "type assertion", ok)
+		logger.Debug("repeat", "type assertion", ok)
 		return
 	}
 
