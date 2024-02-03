@@ -1,3 +1,5 @@
+all: test client server
+
 test: reports
 	go test -v -cover ./... -coverprofile=reports/report.cover
 
@@ -14,8 +16,12 @@ coverage:
 build:
 	go build -o bin/main main.go
 
+client:
+	(cd client && npm run build)
+
 clean:
 	rm -f bin/*
 	rm -f reports/*
+	rm -rf client/dist/*
 
-.PHONY: test build clean reports coverage
+.PHONY: test build clean reports coverage client

@@ -4,12 +4,15 @@ import (
 	"net/http"
 
 	"github.com/charmbracelet/log"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	connectFour "gitlab.com/Yoolayn/connect_four/internal/logic"
 )
 
 func addHandlers(r *gin.Engine) {
+	r.Use(static.Serve("/", static.LocalFile("./client/dist", true)))
+
 	r.GET("/users", getUsers)
 	r.GET("/users/:login", getUser)
 	r.GET("/games", getGames)
