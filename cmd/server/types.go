@@ -120,6 +120,11 @@ type Join struct {
 	Color       string      `json:"color"`
 }
 
+type NewName struct {
+	Credentials Credentials `json:"credentials"`
+	NewName     string      `json:"newname"`
+}
+
 type User struct {
 	Login    string `json:"login" bson:"login"`
 	Password string `json:"password" bson:"password"`

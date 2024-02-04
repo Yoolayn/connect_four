@@ -50,7 +50,13 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), updatePassword)
-	// r.PUT("/users/:login/name")
+	r.PUT("/users/:login/name", decoder(new(NewName)), authorizer(func(bdy interface{}) (Credentials, error) {
+		body, ok := bdy.(*NewName)
+		if !ok {
+			return Credentials{}, ErrType
+		}
+		return body.Credentials, nil
+	}), updateName)
 
 	r.DELETE("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(false))
 	r.DELETE("/users/:login", decoder(new(Credentials)), authorizer(simpleCred), deleteUser)
@@ -67,6 +73,52 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), repeat)
+}
+
+func updateName(c *gin.Context) {
+	login, ok := c.Params.Get("login")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("updateName", "get login", "failed to get login")
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("updateName", "get body", "failed to get the body")
+		return
+	}
+
+	bdy, ok := body.(*NewName)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrType))
+		logger.Debug("updateName", "transform to *NewName", ErrType)
+		return
+	}
+
+	if login != bdy.Credentials.Login {
+		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
+		logger.Debug("updateName", "auth", ErrNotAuthorized)
+		return
+	}
+
+	usr, ok := collections["users"].Get(login)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+		logger.Debug("updateName", "get user", ErrUserNotFound)
+		return
+	}
+
+	usr.Name = bdy.NewName
+	ok = collections["users"].Update(login, usr)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUpdateFailed))
+		logger.Debug("updateName", "update user", ErrUpdateFailed)
+		return
+	}
+
+	c.Status(http.StatusAccepted)
 }
 
 func updatePassword(c *gin.Context) {

@@ -17,6 +17,15 @@ PUT http://localhost:8080/users/user2/password
     "newpassword": "password2"
 }
 
+PUT http://localhost:8080/users/user2/name
+{
+    "credentials": {
+        "login": "user2",
+        "password": "password"
+    },
+    "newname": "madie"
+}
+
 GET http://localhost:8080/users/user2
 HTTP 200
 

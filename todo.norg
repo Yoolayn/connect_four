@@ -12,7 +12,7 @@
   - (x) make move:           PUT          \/games/:id/move
   - (x) update game title:   PUT          \/games/:id
   - (x) change password:     PUT          \/users/:login/password
-  - ( ) change name:         PUT          \/users/:login/name
+  - (x) change name:         PUT          \/users/:login/name
 
   - (x) user:                DELETE       \/users/:login
   - ( ) game:                DELETE       \/games/:id
