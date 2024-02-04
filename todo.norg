@@ -17,7 +17,7 @@
   - (x) user:                DELETE       \/users/:login
   - (x) game:                DELETE       \/games/:id
   - (x) admin:               DELETE       \/admins/:login
-  - ( ) leave game:          DELETE       \/games/:id/leave
+  - (x) leave game:          DELETE       \/games/:id/leave
 
 * features
   - (x) add mongo

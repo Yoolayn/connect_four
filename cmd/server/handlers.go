@@ -61,7 +61,7 @@ func addHandlers(r *gin.Engine) {
 	r.DELETE("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(false))
 	r.DELETE("/users/:login", decoder(new(Credentials)), authorizer(simpleCred), deleteUser)
 	r.DELETE("/games/:id", decoder(new(Credentials)), authorizer(simpleCred), deleteGame)
-	// r.DELETE("/games/:id/leave")
+	r.DELETE("/games/:id/leave", decoder(new(Credentials)), authorizer(simpleCred), leaveGame)
 
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Hello, World!")
@@ -73,6 +73,52 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), repeat)
+}
+
+func leaveGame(c *gin.Context) {
+	uid, ok := idToUUID(c, "deleteGame")
+	if !ok {
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("leaveGame", "get body", "failed to get the body")
+		return
+	}
+
+	bdy, ok := body.(*Credentials)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrType))
+		logger.Debug("deleteGame", "type cast", ErrType)
+		return
+	}
+
+	game, ok := games[uid]
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
+		logger.Debug("leaveGame", "find game", ErrGameNotFound)
+		return
+	}
+
+	if game.Player1.User.Login != bdy.Login && game.Player2.User.Login != bdy.Login {
+		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
+		logger.Debug("leaveGame", "auth", ErrNotAuthorized)
+		return
+	}
+
+	if bdy.Login == game.Player1.User.Login {
+		game.Player1.User = User{}
+	} else if bdy.Login == game.Player2.User.Login {
+		game.Player2.User = User{}
+	} else {
+		c.AbortWithStatusJSON(newErr(ErrNotInGame))
+		logger.Debug("leaveGame", "user not in game", ErrNotInGame)
+		return
+	}
+
+	c.Status(http.StatusAccepted)
 }
 
 func deleteGame(c *gin.Context) {
