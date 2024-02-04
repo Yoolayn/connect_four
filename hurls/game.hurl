@@ -7,6 +7,17 @@ HTTP 201
 [Captures]
 id: body
 
+POST http://localhost:8080/games/{{id}}
+{
+    "credentials": {
+        "login": "login",
+        "password": "pass"
+    },
+    "color": "red"
+}
+
+GET http://localhost:8080/games
+
 PUT http://localhost:8080/games/{{id}}
 {
     "credentials": {
@@ -17,5 +28,11 @@ PUT http://localhost:8080/games/{{id}}
 }
 
 GET http://localhost:8080/games/{{id}}
+
+DELETE http://localhost:8080/games/{{id}}
+{
+    "login": "login",
+    "password": "pass"
+}
 
 GET http://localhost:8080/games

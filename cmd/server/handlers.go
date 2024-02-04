@@ -60,7 +60,7 @@ func addHandlers(r *gin.Engine) {
 
 	r.DELETE("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(false))
 	r.DELETE("/users/:login", decoder(new(Credentials)), authorizer(simpleCred), deleteUser)
-	// r.DELETE("/games/:id")
+	r.DELETE("/games/:id", decoder(new(Credentials)), authorizer(simpleCred), deleteGame)
 	// r.DELETE("/games/:id/leave")
 
 	r.GET("/", func(c *gin.Context) {
@@ -73,6 +73,43 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), repeat)
+}
+
+func deleteGame(c *gin.Context) {
+	uid, ok := idToUUID(c, "deleteGame")
+	if !ok {
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("deleteGame", "get body", "failed to get the body")
+		return
+	}
+
+	bdy, ok := body.(*Credentials)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrType))
+		logger.Debug("updateName", "transform to *Credentials", ErrType)
+		return
+	}
+
+	game, ok := games[uid]
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
+		logger.Debug("deleteGame", "get game", "failed to get the game")
+		return
+	}
+
+	if game.Player1.User.Login != bdy.Login && game.Player2.User.Login != bdy.Login {
+		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
+		logger.Debug("deleteGame", "delete game", ErrNotAuthorized)
+		return
+	}
+
+	delete(games, uid)
+	c.Status(http.StatusOK)
 }
 
 func updateName(c *gin.Context) {
@@ -194,14 +231,14 @@ func joinGame(c *gin.Context) {
 		return
 	}
 
-	bdy, ok := body.(Credentials)
+	bdy, ok := body.(*Join)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
 		logger.Debug("joinGame", "type cast", ErrType)
 		return
 	}
 
-	usr, ok := collections["users"].Get(bdy.Login)
+	usr, ok := collections["users"].Get(bdy.Credentials.Login)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
 		logger.Debug("joinGame", "get user", "failed getting user from db")
@@ -214,9 +251,11 @@ func joinGame(c *gin.Context) {
 	}{}
 
 	if game.Player1.User.Login == "" {
+		game.Player1.Color = bdy.Color
 		game.Player1.User = usr
 		response.Position = 1
 	} else if game.Player2.User.Login == "" {
+		game.Player2.Color = bdy.Color
 		game.Player2.User = usr
 		response.Position = 2
 	} else {
@@ -225,6 +264,7 @@ func joinGame(c *gin.Context) {
 	}
 
 	response.Game = uid
+	games[uid] = game
 
 	c.JSON(http.StatusOK, response)
 
