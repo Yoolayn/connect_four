@@ -8,6 +8,15 @@ POST http://localhost:8080/users
 }
 HTTP 201
 
+PUT http://localhost:8080/users/user2/password
+{
+    "credentials": {
+        "login": "user2",
+        "password": "password"
+    },
+    "newpassword": "password2"
+}
+
 GET http://localhost:8080/users/user2
 HTTP 200
 

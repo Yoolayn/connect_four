@@ -2,7 +2,7 @@
   - (x) new user:            POST         \/users
   - (x) new game:            POST         \/games
   - (x) new admin:           POST         \/admins/:login
-  - ( ) join game:           POST         \/games/:id
+  - (x) join game:           POST         \/games/:id
 
   - (x) user:                GET          \/users/:id
   - (x) game:                GET          \/games/:id
@@ -10,8 +10,8 @@
   - (x) games:               GET          \/games
 
   - (x) make move:           PUT          \/games/:id/move
-  - ( ) update game title:   PUT          \/games/:id
-  - ( ) change password:     PUT          \/users/:login/password
+  - (x) update game title:   PUT          \/games/:id
+  - (x) change password:     PUT          \/users/:login/password
   - ( ) change name:         PUT          \/users/:login/name
 
   - (x) user:                DELETE       \/users/:login

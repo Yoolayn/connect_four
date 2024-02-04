@@ -3,7 +3,7 @@ all: test client server
 test: reports
 	go test -v -cover ./... -coverprofile=reports/report.cover
 
-server:
+server: client
 	go build -race -o bin/server cmd/server/*.go
 
 demo:

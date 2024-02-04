@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	"github.com/charmbracelet/log"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -44,7 +43,13 @@ func addHandlers(r *gin.Engine) {
 		}
 		return title.Credentials, nil
 	}), updateTitle)
-	// r.PUT("/users/:login/password")
+	r.PUT("/users/:login/password", decoder(new(NewPassword)), authorizer(func(bdy interface{}) (Credentials, error) {
+		body, ok := bdy.(*NewPassword)
+		if !ok {
+			return Credentials{}, ErrType
+		}
+		return body.Credentials, nil
+	}), updatePassword)
 	// r.PUT("/users/:login/name")
 
 	r.DELETE("/admins/:login", decoder(new(Credentials)), authorizer(simpleCred, true), changeAdmin(false))
@@ -64,6 +69,59 @@ func addHandlers(r *gin.Engine) {
 	}), repeat)
 }
 
+func updatePassword(c *gin.Context) {
+	login, ok := c.Params.Get("login")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("updatePassword", "get params", "failed to get id")
+		return
+	}
+
+	body, ok := c.Get("decodedbody")
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("updatePassword", "get body", "failed to get the body")
+		return
+	}
+
+	bdy, ok := body.(*NewPassword)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("updatePassword", "body cast", ErrType)
+		return
+	}
+
+	if login != bdy.Credentials.Login {
+		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
+		logger.Debug("updatePassword", "auth", ErrNotAuthorized)
+		return
+	}
+
+	usr, ok := collections["users"].Get(login)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+		logger.Debug("updatePassword", "get user", ErrUserNotFound)
+		return
+	}
+
+	usr.Password = bdy.NewPassword
+	err := usr.Encrypt()
+	if err != nil {
+		c.AbortWithStatusJSON(newErr(ErrPassTooLong))
+		logger.Debug("updatePassword", "encrypt", ErrPassTooLong)
+		return
+	}
+
+	ok = collections["users"].Update(usr.Login, usr)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUpdateFailed))
+		logger.Debug("updatePassword", "update user", ErrUpdateFailed)
+		return
+	}
+
+	c.Status(http.StatusAccepted)
+}
+
 func joinGame(c *gin.Context) {
 	uid, ok := idToUUID(c, "joinGame")
 	if !ok {
@@ -73,28 +131,28 @@ func joinGame(c *gin.Context) {
 	game, ok := games[uid]
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrGameNotFound))
-		log.Debug("joinGame", "get game", ErrGameNotFound)
+		logger.Debug("joinGame", "get game", ErrGameNotFound)
 		return
 	}
 
 	body, ok := c.Get("decodedbody")
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("joinGame", "get body", "failed to get the body")
+		logger.Debug("joinGame", "get body", "failed to get the body")
 		return
 	}
 
 	bdy, ok := body.(Credentials)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrType))
-		log.Debug("joinGame", "type cast", ErrType)
+		logger.Debug("joinGame", "type cast", ErrType)
 		return
 	}
 
 	usr, ok := collections["users"].Get(bdy.Login)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrInternal))
-		log.Debug("joinGame", "get user", "failed getting user from db")
+		logger.Debug("joinGame", "get user", "failed getting user from db")
 		return
 	}
 

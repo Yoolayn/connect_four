@@ -117,7 +117,7 @@ type Title struct {
 
 type Join struct {
 	Credentials Credentials `json:"credentials"`
-	Color string `json:"color"`
+	Color       string      `json:"color"`
 }
 
 type User struct {
@@ -130,6 +130,11 @@ type User struct {
 type Player struct {
 	User  User   `json:"user"`
 	Color string `json:"color"`
+}
+
+type NewPassword struct {
+	Credentials Credentials `json:"credentials"`
+	NewPassword string      `json:"newpassword"`
 }
 
 type Game struct {

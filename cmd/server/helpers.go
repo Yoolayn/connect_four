@@ -20,6 +20,7 @@ func decodeBody(c *gin.Context, body interface{}) {
 
 func decoder(bdy interface{}) func(*gin.Context) {
 	return func(c *gin.Context) {
+		logger.Debug("decoding body")
 		decodeBody(c, bdy)
 	}
 }
@@ -44,10 +45,12 @@ func idToUUID(c *gin.Context, name string) (uuid.UUID, bool) {
 
 func authorizer(fn func(bdy any) (Credentials, error), admin ...bool) func(*gin.Context) {
 	auth := func(c *gin.Context) {
+		logger.Debug("auth started")
 		authorize(c, fn)
 	}
 	if len(admin) > 0 && admin[0] {
 		auth = func(c *gin.Context) {
+			logger.Debug("auth started")
 			authorize(c, fn, func(u User) bool {
 				return u.IsAdmin
 			})
