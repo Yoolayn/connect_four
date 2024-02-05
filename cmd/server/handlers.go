@@ -2,6 +2,9 @@ package main
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -63,6 +66,7 @@ func addHandlers(r *gin.Engine) {
 	r.DELETE("/games/:id", decoder(new(Credentials)), authorizer(simpleCred), deleteGame)
 	r.DELETE("/games/:id/leave", decoder(new(Credentials)), authorizer(simpleCred), leaveGame)
 
+	r.GET("/search", search)
 	r.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "Hello, World!")
 	})
@@ -73,6 +77,82 @@ func addHandlers(r *gin.Engine) {
 		}
 		return body.Credentials, nil
 	}), repeat)
+}
+
+func search(c *gin.Context) {
+	var wg sync.WaitGroup
+	results := make(chan map[string]interface{}, 10)
+	for i, v := range c.Request.URL.Query() {
+		for j, w := range v {
+			logger.Debug("search", "searching for", i)
+			if i == "game" || i == "games" {
+				logger.Debug("search", "got game", w)
+				wg.Add(1)
+				go func(w string, j int) {
+					logger.Debug("game search", j, w)
+					defer wg.Done()
+					res := searchGame(w)
+					logger.Debug("search", "getting game", res)
+					results <- map[string]interface{}{"game" + strconv.Itoa(j): res}
+				}(w, j)
+			} else if i == "user" || i == "users" {
+				logger.Debug("search", "got user", w)
+				wg.Add(1)
+				go func(w string, j int) {
+					logger.Debug("user search", j, w)
+					defer wg.Done()
+					var res []User
+					ok := collections["users"].Search(w, &res)
+					if !ok {
+						return
+					}
+					logger.Debug("search", "user result", res)
+					results <- map[string]interface{}{"user" + strconv.Itoa(j): res}
+				}(w, j)
+			}
+		}
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	var gamesResult []Game
+	var usersResult []User
+	for v := range results {
+		for key, val := range v {
+			if strings.Contains(key, "user") {
+				sl, ok := val.([]User)
+				if !ok {
+					continue
+				}
+				logger.Debug("search", "slice", sl)
+				usersResult = append(usersResult, sl...)
+			}
+			if strings.Contains(key, "game") {
+				sl, ok := val.([]Game)
+				if !ok {
+					continue
+				}
+				logger.Debug("search", "slice", sl)
+				gamesResult = append(gamesResult, sl...)
+			}
+		}
+	}
+
+	logger.Debug("search", "games", gamesResult)
+	logger.Debug("search", "users", usersResult)
+
+	response := struct {
+		Games []Game `json:"games,omitempty"`
+		Users []User `json:"users,omitempty"`
+	}{
+		Games: gamesResult,
+		Users: usersResult,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func leaveGame(c *gin.Context) {

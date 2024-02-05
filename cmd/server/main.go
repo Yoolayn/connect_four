@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -34,6 +35,32 @@ var (
 	collections = make(map[string]collection)
 	logger *log.Logger
 )
+
+func searchGame(pattern string) []Game {
+	logger.Debug("searchGame", "pattern", pattern)
+	var matching []Game
+	for _, game := range games {
+		ok := strings.Contains(strings.ToLower(game.Title), pattern)
+		if ok {
+			matching = append(matching, game)
+			continue
+		}
+
+		ok = strings.Contains(strings.ToLower(game.Player1.User.Login), pattern)
+		if ok {
+			matching = append(matching, game)
+			continue
+		}
+
+		ok = strings.Contains(strings.ToLower(game.Player2.User.Login), pattern)
+		if ok {
+			matching = append(matching, game)
+			continue
+		}
+	}
+
+	return matching
+}
 
 func corsConfig() cors.Config {
 	config := cors.DefaultConfig()

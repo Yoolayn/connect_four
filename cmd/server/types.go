@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	game "gitlab.com/Yoolayn/connect_four/internal/logic"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -75,6 +76,35 @@ func (c collection) GetAll(result interface{}) bool {
 		return false
 	}
 
+	return true
+}
+
+func (c collection) Search(pattern string, result interface{}) bool {
+	logger.Debug("Search on collection " + c.name, "pattern", pattern)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
+	defer cancel()
+
+	pipeline := mongo.Pipeline{
+		bson.D{
+			{Key: "$match", Value: bson.D{
+				{ Key: "login", Value: primitive.Regex{Pattern: pattern, Options: "i"} },
+			}},
+		},
+	}
+
+	cursor, err := c.c.Aggregate(ctx, pipeline)
+	if err != nil {
+		logger.Debug("search users", "aggregate", err)
+		return false
+	}
+
+	err = cursor.All(ctx, result)
+	if err != nil {
+		logger.Debug("search users", "decode cursor", err)
+		return false
+	}
+
+	logger.Debug("Search on collection " + c.name, "status", true)
 	return true
 }
 
