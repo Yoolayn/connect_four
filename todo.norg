@@ -35,12 +35,17 @@
   - (x) create user
   - (x) create game
   - (x) get users
-  - ( ) join game
-  - ( ) leave game
-  - ( ) rename game
+  - (x) change name
+  - (x) change password
+  - (x) logout
+  - (x) delete account
+  - (x) make admin
+  - (x) remove admin
+
+** requires bubbletea
   - ( ) specific game/user by search > list
-  - ( ) delete account
+  - ( ) rename game
+  - ( ) leave game
 
 ** next:
-  - ( ) change name
-  - ( ) change password
+   - ( ) join game - will start bubble tea
