@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"strings"
 )
 
 type Checker struct {
@@ -50,22 +50,28 @@ type Game struct {
 
 func (g Game) String() string {
 	title := "Title: " + g.Title
-	player1 := "Player1: " + g.Player1.User.String()
+
+	prefix := "User: "
+	if g.Player1.User.IsAdmin {
+		prefix = "Administrator: "
+	}
+	player1 := strings.TrimPrefix(g.Player1.User.String(), prefix)
+
+	player1 = "Player1: " + player1
 	if player1 != "Player1: empty" {
 		player1 = player1 + " - " + g.Player1.Color
 	}
-	player2 := "Player2: " + g.Player2.User.String()
+
+	prefix = "User: "
+	if g.Player2.User.IsAdmin {
+		prefix = "Administrator: "
+	}
+	player2 := strings.TrimPrefix(g.Player2.User.String(), prefix)
+
+	player2 = "Player2: " + player2
 	if player2 != "Player2: empty" {
 		player2 = player2 + " - " + g.Player2.Color
 	}
-	return title + ", " + player1 + ", " + player2
-}
 
-func PrintGames(gms []Game) {
-	fmt.Println("print started")
-	fmt.Println(gms)
-	for _, v := range gms {
-		fmt.Println("got", v)
-		fmt.Println(v.String())
-	}
+	return title + ", " + player1 + ", " + player2
 }

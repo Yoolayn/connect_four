@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -68,7 +69,27 @@ func search(args string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(data))
+		var body struct {
+			Users []User `json:"users"`
+			Games []Game `json:"games"`
+		}
+		err = json.Unmarshal(data, &body)
+		if err != nil {
+			return err
+		}
+
+		if len(body.Users) != 0 {
+			for i, v := range body.Users {
+				fmt.Println(strconv.Itoa(i+1)+":", v.String())
+			}
+		} else if len(body.Games) != 0 {
+			for i, v := range body.Games {
+				fmt.Println(strconv.Itoa(i+1)+":", v.String())
+			}
+		} else {
+			fmt.Println("no results")
+		}
+
 	default:
 		return ErrWrongParam
 	}
