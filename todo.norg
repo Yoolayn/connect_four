@@ -26,25 +26,18 @@
   - (x) allow to save logs to file
 
 * client
-  - (x) display user
-  - (x) display users
-  - ( ) display game
-  - ( ) display games
+  - (x) get games
+  - (x) display help
+  - (x) search
 
-  - ( ) create user
-  - ( ) create game
-  - ( ) create admin
+  - (x) login
+
+  - (x) create user
+  - (x) create game
+  - ( ) get users
   - ( ) join game
-
-  - ( ) make a move
-  - ( ) update title
-  - ( ) change password
-  - ( ) change name
-
-  - ( ) delete user
-  - ( ) delete game
-  - ( ) delete admin
   - ( ) leave game
-
-  - ( ) login
-  - ( ) display the board
+  - ( ) rename game
+  - ( ) change name
+  - ( ) change password
+  - ( ) specific game/user by search > list

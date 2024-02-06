@@ -3,11 +3,14 @@ all: test client server
 test: reports
 	go test -v -cover ./... -coverprofile=reports/report.cover
 
-server: client
+server:
 	go build -race -o bin/server cmd/server/*.go
 
 demo:
 	go run cmd/demo/main.go
+
+client:
+	go build -race -o bin/client cmd/client/*.go
 
 coverage:
 	go tool cover -html=reports/report.cover -o reports/coverage.html
@@ -15,9 +18,6 @@ coverage:
 
 build:
 	go build -o bin/main main.go
-
-client:
-	(cd client && npm run build)
 
 clean:
 	rm -f bin/*

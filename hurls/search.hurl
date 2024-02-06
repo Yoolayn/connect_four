@@ -10,3 +10,4 @@ POST http://localhost:8080/games
 
 GET http://localhost:8080/games
 GET http://localhost:8080/search?games=new
+GET http://localhost:8080/search?games=new%20game
