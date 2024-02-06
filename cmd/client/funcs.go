@@ -214,5 +214,51 @@ func users() error {
 		return nil
 	default:
 		return ErrUnknown
+	}
 }
+
+// user update name <new value>
+func changeName(args string) error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	payload := struct {
+		Credentials credentials `json:"credentials"`
+		Name        string      `json:"newname"`
+	}{
+		Credentials: creds,
+		Name:        args,
+	}
+
+	json, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, baseurl("/users/"+creds.Login+"/name"), bytes.NewBuffer(json))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	r, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	switch r.StatusCode {
+	case 202:
+		fmt.Println("name changed to:", args)
+		return nil
+	default:
+		fmt.Println(string(bytes))
+		return ErrUnknown
+	}
 }

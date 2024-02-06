@@ -38,6 +38,9 @@
   - ( ) join game
   - ( ) leave game
   - ( ) rename game
+  - ( ) specific game/user by search > list
+  - ( ) delete account
+
+** next:
   - ( ) change name
   - ( ) change password
-  - ( ) specific game/user by search > list

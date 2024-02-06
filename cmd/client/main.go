@@ -130,20 +130,18 @@ func main() {
 		return help()
 	}
 	cmds["new"] = func(args string) error {
-		var err error
 		argSplit := strings.SplitN(args, " ", 2)
 		switch argSplit[0] {
 		case "user":
 			if len(argSplit) != 2 {
 				return ErrNotEnoughParams
 			}
-			err = newUser(argSplit[1])
+			return newUser(argSplit[1])
 		case "game":
-			err = newGame()
+			return newGame()
 		default:
-			err = ErrNewParams
+			return ErrNewParams
 		}
-		return err
 	}
 	cmds["login"] = func(args string) error {
 		if args == "" {
@@ -153,5 +151,30 @@ func main() {
 	}
 	cmds["users"] = func(args string) error {
 		return users()
+	}
+	cmds["user"] = func(args string) error {
+		// user <update|delete> <what> <args>
+		argSplit := strings.SplitN(args, " ", 3)
+		if len(argSplit) < 1 {
+			return ErrNotEnoughParams
+		}
+		switch argSplit[0] {
+		case "update":
+			if len(argSplit) != 3 {
+				return ErrNotEnoughParams
+			}
+			switch argSplit[1] {
+			case "name":
+				return changeName(argSplit[2])
+			case "login":
+				return ErrNotImplemented
+			default:
+				return ErrNotImplemented
+			}
+		case "delete":
+			return ErrNotImplemented
+		default:
+			return ErrNewParams
+		}
 	}
 }
