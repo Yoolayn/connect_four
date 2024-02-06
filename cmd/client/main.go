@@ -12,6 +12,7 @@ import (
 type credentials struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
+	Name     string `json:"name"`
 }
 
 func (c credentials) Logged() error {
@@ -21,11 +22,20 @@ func (c credentials) Logged() error {
 	return nil
 }
 
+func (c credentials) Status() error {
+	if err := c.Logged(); err == nil {
+		fmt.Println("logged in as", "\""+creds.Name+"\""+" "+"("+creds.Login+")")
+		return nil
+	} else {
+		return err
+	}
+}
+
 var (
 	cmds   = make(map[string]func(string) error, 0)
 	height = 0
 	buffer bytes.Buffer
-	creds  credentials
+	creds  = credentials{}
 )
 
 func processing(line string) error {
@@ -40,13 +50,27 @@ func processing(line string) error {
 		args = words[1]
 	}
 
-	return dispatch(cmd, args)
+	fmt.Print("\033[s")
+	fmt.Print("\033[A")
+	err := dispatch(cmd, args)
+	fmt.Print("\033[u")
+	return err
 }
 
 func dispatch(cmd, args string) error {
 	fn, ok := cmds[cmd]
 	if !ok {
-		return ErrCmdNotFound
+		if ok := cmd[0:1] == "/"; ok {
+			return ErrCmdNotFound
+		} else {
+			if err := creds.Logged(); err == nil {
+				fmt.Println(creds.Login + ": " + cmd + " " + args)
+				return nil
+			} else {
+				fmt.Println("not logged in")
+				return nil
+			}
+		}
 	}
 	return fn(args)
 }
@@ -111,25 +135,25 @@ func main() {
 	fullClear()
 	moveBottom()
 
-	cmds["search"] = func(args string) error {
+	cmds["/search"] = func(args string) error {
 		if args == "" {
 			return ErrArgsReq
 		}
 		return search(args)
 	}
-	cmds["games"] = func(args string) error {
+	cmds["/games"] = func(args string) error {
 		return games()
 	}
-	cmds["hello"] = func(args string) error {
+	cmds["/hello"] = func(args string) error {
 		if args == "" {
 			return ErrArgsReq
 		}
 		return hello(args)
 	}
-	cmds["help"] = func(args string) error {
+	cmds["/help"] = func(args string) error {
 		return help()
 	}
-	cmds["new"] = func(args string) error {
+	cmds["/new"] = func(args string) error {
 		argSplit := strings.SplitN(args, " ", 2)
 		switch argSplit[0] {
 		case "user":
@@ -143,22 +167,24 @@ func main() {
 			return ErrNewParams
 		}
 	}
-	cmds["login"] = func(args string) error {
+	cmds["/login"] = func(args string) error {
 		if args == "" {
 			return ErrArgsReq
 		}
 		return login(args)
 	}
-	cmds["users"] = func(args string) error {
+	cmds["/users"] = func(args string) error {
 		return users()
 	}
-	cmds["user"] = func(args string) error {
+	cmds["/user"] = func(args string) error {
 		// user <update|delete> <what> <args>
 		argSplit := strings.SplitN(args, " ", 3)
 		if len(argSplit) < 1 {
 			return ErrNotEnoughParams
 		}
 		switch argSplit[0] {
+		case "change":
+			fallthrough
 		case "update":
 			if len(argSplit) != 3 {
 				return ErrNotEnoughParams
@@ -166,15 +192,27 @@ func main() {
 			switch argSplit[1] {
 			case "name":
 				return changeName(argSplit[2])
-			case "login":
-				return ErrNotImplemented
+			case "password":
+				return changePassword(argSplit[2])
 			default:
-				return ErrNotImplemented
+				return ErrUserUpdate
 			}
 		case "delete":
 			return ErrNotImplemented
 		default:
-			return ErrNewParams
+			return ErrUserUpdate
+		}
+	}
+	cmds["/status"] = func(args string) error {
+		return creds.Status()
+	}
+	cmds["/logout"] = func(args string) error {
+		if err := creds.Logged(); err == nil {
+			fmt.Println("Logged out")
+			creds = credentials{}
+			return nil
+		} else {
+			return ErrNotLoggedIn
 		}
 	}
 }

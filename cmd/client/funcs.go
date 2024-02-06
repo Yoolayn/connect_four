@@ -107,11 +107,17 @@ func login(args string) error {
 	case 401:
 		return ErrWrongPassword
 	case 200:
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+		if string(body) == "" {
+			body = []byte("NO_NAME")
+		}
 		creds.Login = payload.Login
 		creds.Password = payload.Password
-		fmt.Println("logged in")
-		fmt.Printf("%#v\n", creds)
-		return nil
+		creds.Name = string(body)
+		return creds.Status()
 	default:
 		return ErrUnknown
 	}
@@ -147,17 +153,14 @@ func newUser(args string) error {
 		return err
 	}
 
-	if r.StatusCode == 409 {
+	switch r.StatusCode {
+	case 409:
 		return ErrLoginTaken
-	}
-
-	if r.StatusCode != 201 {
+	case 201:
 		return ErrRequest
+	default:
+		return ErrUnknown
 	}
-
-	fmt.Println(r.Status)
-
-	return nil
 }
 
 func newGame() error {
@@ -256,6 +259,52 @@ func changeName(args string) error {
 	switch r.StatusCode {
 	case 202:
 		fmt.Println("name changed to:", args)
+		return nil
+	default:
+		fmt.Println(string(bytes))
+		return ErrUnknown
+	}
+}
+
+func changePassword(args string) error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	payload := struct {
+		Credentials credentials `json:"credentials"`
+		Password    string      `json:"newpassword"`
+	}{
+		Credentials: creds,
+		Password:    args,
+	}
+
+	json, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, baseurl("/users/"+creds.Login+"/password"), bytes.NewBuffer(json))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	r, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	switch r.StatusCode {
+	case 202:
+		fmt.Println("password changed")
+		creds.Password = payload.Password
 		return nil
 	default:
 		fmt.Println(string(bytes))

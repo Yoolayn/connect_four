@@ -75,7 +75,28 @@ func addHandlers(r *gin.Engine) {
 		return body.Credentials, nil
 	}), repeat)
 	r.POST("/login", decoder(new(Credentials)), authorizer(simpleCred), func(c *gin.Context) {
-		c.Status(http.StatusOK)
+		body, ok := c.Get("decodedbody")
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrInternal))
+			logger.Debug("login", "get body", ErrInternal)
+			return
+		}
+		
+		bdy, ok := body.(*Credentials)
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrType))
+			logger.Debug("login", "cast", ErrType)
+			return
+		}
+
+		usr, ok := collections["users"].Get(bdy.Login)
+		if !ok {
+			c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+			logger.Debug("login", "get user", ErrUserNotFound)
+			return
+		}
+
+		c.String(http.StatusOK, usr.Name)
 	})
 }
 
