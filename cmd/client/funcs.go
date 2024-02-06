@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/peterh/liner"
 )
 
@@ -29,7 +30,17 @@ func games() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(body))
+
+	var gms map[uuid.UUID]Game
+	err = json.Unmarshal(body, &gms)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range gms {
+		fmt.Println("id:", k, ">>=", v)
+	}
+
 	return nil
 }
 
@@ -216,7 +227,17 @@ func users() error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(bytes))
+
+		var usrs []User
+		err = json.Unmarshal(bytes, &usrs)
+		if err != nil {
+			return nil
+		}
+
+		for _, v := range usrs {
+			fmt.Println(v.String())
+		}
+
 		return nil
 	default:
 		return ErrUnknown

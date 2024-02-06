@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/peterh/liner"
@@ -51,10 +52,7 @@ func processing(line string) error {
 		args = words[1]
 	}
 
-	fmt.Print("\033[s")
-	fmt.Print("\033[A")
 	err := dispatch(cmd, args)
-	fmt.Print("\033[u")
 	return err
 }
 
@@ -203,7 +201,7 @@ func main() {
 		case "delete":
 			return deleteUser()
 		default:
-			return ErrUserUpdate
+			return ErrUserParams
 		}
 	}
 	cmds["/status"] = func(args string) error {
@@ -220,5 +218,10 @@ func main() {
 	}
 	cmds["/join"] = func(args string) error {
 		return ErrNotImplemented
+	}
+	cmds["/exit"] = func(args string) error {
+		fmt.Println("Exiting...")
+		os.Exit(0)
+		return nil
 	}
 }
