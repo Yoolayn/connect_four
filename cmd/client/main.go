@@ -40,6 +40,7 @@ var (
 
 func processing(line string) error {
 	line = strings.ToLower(line)
+	line = strings.TrimSpace(line)
 	words := strings.SplitN(line, " ", 2)
 
 	cmd := words[0]
@@ -60,6 +61,9 @@ func processing(line string) error {
 func dispatch(cmd, args string) error {
 	fn, ok := cmds[cmd]
 	if !ok {
+		if cmd == "" {
+			return nil
+		}
 		if ok := cmd[0:1] == "/"; ok {
 			return ErrCmdNotFound
 		} else {
@@ -177,7 +181,6 @@ func main() {
 		return users()
 	}
 	cmds["/user"] = func(args string) error {
-		// user <update|delete> <what> <args>
 		argSplit := strings.SplitN(args, " ", 3)
 		if len(argSplit) < 1 {
 			return ErrNotEnoughParams
@@ -198,7 +201,7 @@ func main() {
 				return ErrUserUpdate
 			}
 		case "delete":
-			return ErrNotImplemented
+			return deleteUser()
 		default:
 			return ErrUserUpdate
 		}
@@ -214,5 +217,8 @@ func main() {
 		} else {
 			return ErrNotLoggedIn
 		}
+	}
+	cmds["/join"] = func(args string) error {
+		return ErrNotImplemented
 	}
 }

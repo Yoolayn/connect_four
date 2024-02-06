@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/peterh/liner"
 )
 
 func baseurl(path string) string {
@@ -157,9 +159,10 @@ func newUser(args string) error {
 	case 409:
 		return ErrLoginTaken
 	case 201:
-		return ErrRequest
+		fmt.Println("user created")
+		return nil
 	default:
-		return ErrUnknown
+		return ErrRequest
 	}
 }
 
@@ -259,6 +262,7 @@ func changeName(args string) error {
 	switch r.StatusCode {
 	case 202:
 		fmt.Println("name changed to:", args)
+		creds.Name = payload.Name
 		return nil
 	default:
 		fmt.Println(string(bytes))
@@ -309,5 +313,62 @@ func changePassword(args string) error {
 	default:
 		fmt.Println(string(bytes))
 		return ErrUnknown
+	}
+}
+
+func deleteUser() error {
+	line := liner.NewLiner()
+	defer line.Close()
+	line.SetCtrlCAborts(false)
+
+	fmt.Print("\033[B")
+	prompt, err := line.Prompt("are you sure? [yes/No]: ")
+	fmt.Print("\033[A")
+	if err != nil {
+		return err
+	}
+
+	if prompt != "yes" && prompt != "Yes" {
+		return nil
+	}
+
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	payload := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}{
+		Login:    creds.Login,
+		Password: creds.Password,
+	}
+
+	json, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, baseurl("/users/"+creds.Login), bytes.NewBuffer(json))
+	if err != nil {
+		return err
+	}
+
+	client := http.Client{}
+
+	r, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	switch r.StatusCode {
+	case 200:
+		creds = credentials{}
+		fmt.Println("deleted user and logged out")
+		return nil
+	case 404:
+		return ErrUserNotFound
+	default:
+		return ErrRequest
 	}
 }
