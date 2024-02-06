@@ -34,7 +34,7 @@
 
   - (x) create user
   - (x) create game
-  - ( ) get users
+  - (x) get users
   - ( ) join game
   - ( ) leave game
   - ( ) rename game

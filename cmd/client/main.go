@@ -139,7 +139,7 @@ func main() {
 			}
 			err = newUser(argSplit[1])
 		case "game":
-			err = newGame(argSplit[0])
+			err = newGame()
 		default:
 			err = ErrNewParams
 		}
@@ -150,5 +150,8 @@ func main() {
 			return ErrArgsReq
 		}
 		return login(args)
+	}
+	cmds["users"] = func(args string) error {
+		return users()
 	}
 }

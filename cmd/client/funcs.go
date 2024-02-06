@@ -49,11 +49,11 @@ func search(args string) error {
 	case "games":
 		response, err := http.Get(baseurl("/search?") + split[0] + "=" + pattern)
 		if err != nil {
-			return ErrNoResponse
+			return err
 		}
 		data, err := io.ReadAll(response.Body)
 		if err != nil {
-			return ErrParse
+			return err
 		}
 		fmt.Println(string(data))
 	default:
@@ -160,7 +160,7 @@ func newUser(args string) error {
 	return nil
 }
 
-func newGame(args string) error {
+func newGame() error {
 	err := creds.Logged()
 	if err != nil {
 		return err
@@ -197,4 +197,22 @@ func newGame(args string) error {
 	default:
 		return ErrUnknown
 	}
+}
+
+func users() error {
+	r, err := http.Get(baseurl("/users"))
+	if err != nil {
+		return ErrRequest
+	}
+	switch r.StatusCode {
+	case 200:
+		bytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(bytes))
+		return nil
+	default:
+		return ErrUnknown
+}
 }
