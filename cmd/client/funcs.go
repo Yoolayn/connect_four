@@ -101,6 +101,9 @@ func help() error {
 	var iter int
 	for k := range cmds {
 		iter++
+		if k == "/op" || k == "/deop" {
+			continue
+		}
 		if iter == len(cmds) {
 			fmt.Print(k)
 			break
@@ -412,5 +415,83 @@ func deleteUser() error {
 		return ErrUserNotFound
 	default:
 		return ErrRequest
+	}
+}
+
+func makeAdmin(args string) error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	payload := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}{
+		Login:    creds.Login,
+		Password: creds.Password,
+	}
+
+	json, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(baseurl("/admins/"+args), "application/json", bytes.NewBuffer(json))
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case 200:
+		fallthrough
+	case 202:
+		fmt.Println("Privileges elevated")
+		return nil
+	case 403:
+		return ErrAdminRequired
+	default:
+		return ErrUnknown
+	}
+}
+
+func removeAdmin(args string) error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	payload := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}{
+		Login:    creds.Login,
+		Password: creds.Password,
+	}
+
+	json, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, baseurl("/admins/"+args), bytes.NewBuffer(json))
+	if err != nil {
+		return err
+	}
+
+	c := http.Client{}
+	res, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+
+	switch res.StatusCode {
+	case 200:
+		fallthrough
+	case 202:
+		fmt.Println("Privileges de elevated")
+		return nil
+	case 403:
+		return ErrAdminRequired
+	default:
+		return ErrUnknown
 	}
 }

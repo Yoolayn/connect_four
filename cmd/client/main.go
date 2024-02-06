@@ -40,7 +40,6 @@ var (
 )
 
 func processing(line string) error {
-	line = strings.ToLower(line)
 	line = strings.TrimSpace(line)
 	words := strings.SplitN(line, " ", 2)
 
@@ -223,5 +222,11 @@ func main() {
 		fmt.Println("Exiting...")
 		os.Exit(0)
 		return nil
+	}
+	cmds["/op"] = func(args string) error {
+		return makeAdmin(args)
+	}
+	cmds["/deop"] = func(args string) error {
+		return removeAdmin(args)
 	}
 }

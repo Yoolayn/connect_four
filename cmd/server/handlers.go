@@ -563,6 +563,7 @@ func changeAdmin(to bool) func(c *gin.Context) {
 			logger.Debug(name, "update user", ErrUpdateFailed)
 			return
 		}
+		c.Status(http.StatusAccepted)
 	}
 }
 

@@ -19,6 +19,7 @@ var (
 	ErrCmdNotFound     = errors.New("command not found")
 	ErrNotLoggedIn     = errors.New("user is not logged in")
 	ErrUserNotFound    = errors.New("no user with this name exists")
+	ErrAdminRequired   = errors.New("administrator privilages required")
 	ErrWrongPassword   = errors.New("wrong password")
 	ErrNotImplemented  = errors.New("not yet implemented")
 	ErrNotEnoughParams = errors.New("not enough parameters")
