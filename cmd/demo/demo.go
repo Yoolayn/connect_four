@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	connect_logic "gitlab.com/Yoolayn/connect_four/internal/logic"
 )
@@ -13,6 +14,7 @@ func main() {
 	blue := connect_logic.Checker{Color: "blue"}
 
 	for i := 0; i < 4; i++ {
+		time.Sleep(500 * time.Millisecond)
 		win := func() bool {
 			winner, won := b.CheckWin()
 			if won {
@@ -26,6 +28,8 @@ func main() {
 		if win() {
 			break
 		}
+
+		time.Sleep(500 * time.Millisecond)
 
 		b.Claim(blue, 1)
 		fmt.Println("the", blue.Color, "is making a move and takes claims a checker on row 1!")

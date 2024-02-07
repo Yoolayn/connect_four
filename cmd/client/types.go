@@ -42,10 +42,10 @@ func (u User) String() string {
 }
 
 type Game struct {
-	Board   Board     `json:"board"`
-	Title   string    `json:"title"`
-	Player1 Player    `json:"player1"`
-	Player2 Player    `json:"player2"`
+	Board   Board  `json:"board"`
+	Title   string `json:"title"`
+	Player1 Player `json:"player1"`
+	Player2 Player `json:"player2"`
 }
 
 func (g Game) String() string {

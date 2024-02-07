@@ -7,7 +7,10 @@ server:
 	go build -race -o bin/server cmd/server/*.go
 
 demo:
-	go run cmd/demo/main.go
+	go run cmd/demo/*.go
+
+browser:
+	go run cmd/browser/*.go
 
 client:
 	go build -race -o bin/client cmd/client/*.go
