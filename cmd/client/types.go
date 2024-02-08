@@ -2,15 +2,9 @@ package main
 
 import (
 	"strings"
+
+	logic "gitlab.com/Yoolayn/connect_four/internal/logic"
 )
-
-type Checker struct {
-	Color string
-}
-
-type row []Checker
-
-type Board []row
 
 type User struct {
 	Login    string `json:"login"`
@@ -42,10 +36,10 @@ func (u User) String() string {
 }
 
 type Game struct {
-	Board   Board  `json:"board"`
-	Title   string `json:"title"`
-	Player1 Player `json:"player1"`
-	Player2 Player `json:"player2"`
+	Board   logic.Board `json:"board"`
+	Title   string      `json:"title"`
+	Player1 Player      `json:"player1"`
+	Player2 Player      `json:"player2"`
 }
 
 func (g Game) String() string {
@@ -59,7 +53,14 @@ func (g Game) String() string {
 
 	player1 = "Player1: " + player1
 	if player1 != "Player1: empty" {
-		player1 = player1 + " - " + g.Player1.Color
+		player1 = player1 + " - " + func() string {
+			color := g.Player1.Color
+			if color == "#ff0000" {
+				return "red"
+			} else {
+				return "yellow"
+			}
+		}()
 	}
 
 	prefix = "User: "
@@ -70,7 +71,14 @@ func (g Game) String() string {
 
 	player2 = "Player2: " + player2
 	if player2 != "Player2: empty" {
-		player2 = player2 + " - " + g.Player2.Color
+		player2 = player2 + " - " + func() string {
+			color := g.Player2.Color
+			if color == "#ff0000" {
+				return "red"
+			} else {
+				return "yellow"
+			}
+		}()
 	}
 
 	return title + ", " + player1 + ", " + player2

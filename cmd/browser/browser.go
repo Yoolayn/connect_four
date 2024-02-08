@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	items := []string{uuid.NewString()+ ": game1", uuid.NewString()+ ": game2", uuid.NewString()+ ": game3"}
-	selected, err := browser.New("games", items)
+	items := []string{uuid.NewString()+": game1", uuid.NewString()+": game2", uuid.NewString()+": game3"}
+	selected, err := browser.New("Games:", items)
 	if err != nil {
 		panic(err)
 	}

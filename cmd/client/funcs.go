@@ -9,8 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/uuid"
 	"github.com/peterh/liner"
+	"gitlab.com/Yoolayn/connect_four/internal/browser"
 )
 
 func baseurl(path string) string {
@@ -19,6 +21,130 @@ func baseurl(path string) string {
 
 func hello(m string) error {
 	fmt.Println("welcome", m)
+	return nil
+}
+
+func join() error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	res, err := http.Get(baseurl("/games"))
+	if err != nil {
+		return err
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	var gms map[uuid.UUID]Game
+	err = json.Unmarshal(body, &gms)
+	if err != nil {
+		return err
+	}
+
+	sli := make([]string, 0)
+	gmsStr := make(map[string]Game)
+	for i, v := range gms {
+		gmsStr[i.String()] = v
+		sli = append(sli, i.String())
+	}
+
+	chosen, err := browser.New("Games:", sli)
+	if err != nil {
+		return err
+	}
+
+	colors := map[string]string{
+		"red":    "#ff0000",
+		"yellow": "#ffff00",
+	}
+	colorKeys := make([]string, len(colors))
+	i := 0
+	for k := range colors {
+		colorKeys[i] = k
+		i++
+	}
+
+	color, err := browser.New("Color:", colorKeys)
+	if err != nil {
+		return err
+	}
+
+	// chosenAsUUID, err := uuid.Parse(chosen)
+	// if err != nil {
+	// 	return err
+	// }
+
+	payload := struct {
+		C   credentials `json:"credentials"`
+		Col string      `json:"color"`
+	}{
+		C:   creds,
+		Col: colors[color],
+	}
+
+	mars, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	r, err := http.Post(baseurl("/games/"+chosen), "application/json", bytes.NewBuffer(mars))
+	if err != nil {
+		return err
+	}
+
+	var bodyResp struct {
+		Position int       `json:"position"`
+		Game     uuid.UUID `json:"game"`
+	}
+	switch r.StatusCode {
+	case http.StatusBadRequest:
+		return ErrGameFull
+	case http.StatusNotFound:
+		return ErrGameNotFound
+	case http.StatusOK:
+		earth, err := io.ReadAll(r.Body)
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(earth, &bodyResp)
+		if err != nil {
+			return err
+		}
+	default:
+		return ErrUnknown
+	}
+
+	resp, err := http.Get(baseurl("/games/" + bodyResp.Game.String()))
+	if err != nil {
+		return err
+	}
+
+	var game Game
+	bits, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bits, &game)
+	if err != nil {
+		return err
+	}
+
+	start, err := InitialModel(bodyResp.Position, game)
+	if err != nil {
+		return err
+	}
+
+	p := tea.NewProgram(start, tea.WithAltScreen())
+	_, err = p.Run()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -139,11 +265,11 @@ func login(args string) error {
 	}
 
 	switch r.StatusCode {
-	case 404:
+	case http.StatusNotFound:
 		return ErrUserNotFound
-	case 401:
+	case http.StatusUnauthorized:
 		return ErrWrongPassword
-	case 200:
+	case http.StatusOK:
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			return err
@@ -191,9 +317,9 @@ func newUser(args string) error {
 	}
 
 	switch r.StatusCode {
-	case 409:
+	case http.StatusConflict:
 		return ErrLoginTaken
-	case 201:
+	case http.StatusCreated:
 		fmt.Println("user created")
 		return nil
 	default:
@@ -226,14 +352,14 @@ func newGame() error {
 	}
 
 	switch r.StatusCode {
-	case 201:
+	case http.StatusCreated:
 		id, err := io.ReadAll(r.Body)
 		if err != nil {
 			return ErrUnknown
 		}
 		fmt.Println("new game created with id", string(id), "and title \"New Game\"")
 		return nil
-	case 404:
+	case http.StatusNotFound:
 		return ErrUserNotFound
 	default:
 		return ErrUnknown
@@ -246,7 +372,7 @@ func users() error {
 		return ErrRequest
 	}
 	switch r.StatusCode {
-	case 200:
+	case http.StatusOK:
 		bytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			return err
@@ -305,7 +431,7 @@ func changeName(args string) error {
 	}
 
 	switch r.StatusCode {
-	case 202:
+	case http.StatusAccepted:
 		fmt.Println("name changed to:", args)
 		creds.Name = payload.Name
 		return nil
@@ -351,7 +477,7 @@ func changePassword(args string) error {
 	}
 
 	switch r.StatusCode {
-	case 202:
+	case http.StatusAccepted:
 		fmt.Println("password changed")
 		creds.Password = payload.Password
 		return nil
@@ -407,11 +533,11 @@ func deleteUser() error {
 	}
 
 	switch r.StatusCode {
-	case 200:
+	case http.StatusOK:
 		creds = credentials{}
 		fmt.Println("deleted user and logged out")
 		return nil
-	case 404:
+	case http.StatusNotFound:
 		return ErrUserNotFound
 	default:
 		return ErrRequest
@@ -442,12 +568,12 @@ func makeAdmin(args string) error {
 	}
 
 	switch resp.StatusCode {
-	case 200:
+	case http.StatusOK:
 		fallthrough
-	case 202:
+	case http.StatusAccepted:
 		fmt.Println("Privileges elevated")
 		return nil
-	case 403:
+	case http.StatusForbidden:
 		return ErrAdminRequired
 	default:
 		return ErrUnknown
@@ -484,12 +610,12 @@ func removeAdmin(args string) error {
 	}
 
 	switch res.StatusCode {
-	case 200:
+	case http.StatusOK:
 		fallthrough
-	case 202:
+	case http.StatusAccepted:
 		fmt.Println("Privileges de elevated")
 		return nil
-	case 403:
+	case http.StatusForbidden:
 		return ErrAdminRequired
 	default:
 		return ErrUnknown

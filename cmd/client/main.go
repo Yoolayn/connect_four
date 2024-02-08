@@ -216,7 +216,7 @@ func main() {
 		}
 	}
 	cmds["/join"] = func(args string) error {
-		return ErrNotImplemented
+		return join()
 	}
 	cmds["/exit"] = func(args string) error {
 		fmt.Println("Exiting...")

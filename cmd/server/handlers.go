@@ -414,7 +414,6 @@ func joinGame(c *gin.Context) {
 	games[uid] = game
 
 	c.JSON(http.StatusOK, response)
-
 }
 
 func updateTitle(c *gin.Context) {

@@ -18,12 +18,12 @@ func TestRow(t *testing.T) {
 	t.Run("maker", func(t *testing.T) {
 		got := makeRow()
 		want := row{
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
 		}
 
 		if !slices.Equal(got, want) {
@@ -34,58 +34,58 @@ func TestRow(t *testing.T) {
 	t.Run("claim", func(t *testing.T) {
 		got := makeRow()
 		want := row{
-			Checker{"red"},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
+			NewChecker("#ff0000"),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
 		}
-		_ = got.claim(Checker{"red"})
+		_ = got.claim(NewChecker("#ff0000"))
 
 		assertRow(t, got, want)
 	})
 
 	t.Run("claim with existing", func(t *testing.T) {
 		got := row{
-			Checker{"red"},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
+			NewChecker("#ff0000"),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
 		}
 		want := row{
-			Checker{"red"},
-			Checker{"red"},
-			Checker{},
-			Checker{},
-			Checker{},
-			Checker{},
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
+			NewChecker(""),
 		}
-		_ = got.claim(Checker{"red"})
+		_ = got.claim(NewChecker("#ff0000"))
 
 		assertRow(t, got, want)
 	})
 
 	t.Run("claim full", func(t *testing.T) {
 		r := row{
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
 		}
 		cpy := row{
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
 		}
-		got := r.claim(Checker{"red"})
+		got := r.claim(NewChecker("#ff0000"))
 
 		if got {
 			t.Errorf("wanted %#v, but got %#v", false, got)
@@ -107,12 +107,12 @@ func TestRow(t *testing.T) {
 
 	t.Run("winnable", func(t *testing.T) {
 		r := row{
-			Checker{},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{},
+			NewChecker(""),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker(""),
 		}
 		winner, got := r.checkWin()
 
@@ -120,19 +120,19 @@ func TestRow(t *testing.T) {
 			t.Error("this row should have a winner")
 		}
 
-		if !winner.Equal(Checker{"red"}) {
+		if !winner.Equal(NewChecker("#ff0000")) {
 			t.Error("red should have been a winner")
 		}
 	})
 
 	t.Run("enemy block", func(t *testing.T) {
 		r := row{
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"blue"},
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"red"},
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#0000ff"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
 		}
 		winner, got := r.checkWin()
 
@@ -140,19 +140,19 @@ func TestRow(t *testing.T) {
 			t.Error("there shouldn't have been a winner")
 		}
 
-		if !winner.Equal(Checker{}) {
+		if !winner.Equal(NewChecker("")) {
 			t.Error("winner should be an empty Checker")
 		}
 	})
 
 	t.Run("winnable with enemy", func(t *testing.T) {
 		r := row{
-			Checker{"red"},
-			Checker{"red"},
-			Checker{"blue"},
-			Checker{"blue"},
-			Checker{"blue"},
-			Checker{"blue"},
+			NewChecker("#ff0000"),
+			NewChecker("#ff0000"),
+			NewChecker("#0000ff"),
+			NewChecker("#0000ff"),
+			NewChecker("#0000ff"),
+			NewChecker("#0000ff"),
 		}
 		winner, got := r.checkWin()
 
@@ -160,7 +160,7 @@ func TestRow(t *testing.T) {
 			t.Error("there should be a winner")
 		}
 
-		if !winner.Equal(Checker{"blue"}) {
+		if !winner.Equal(NewChecker("#0000ff")) {
 			t.Error("the winner should be blue")
 		}
 	})
@@ -170,13 +170,13 @@ func TestBoard(t *testing.T) {
 	t.Run("maker", func(t *testing.T) {
 		got := MakeBoard()
 		want := Board{
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
 		}
 
 		if !reflect.DeepEqual(got, want) {
@@ -187,15 +187,15 @@ func TestBoard(t *testing.T) {
 	t.Run("claim", func(t *testing.T) {
 		got := MakeBoard()
 		want := Board{
-			row{Checker{},      Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{},      Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{"red"}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{},      Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{},      Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{},      Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{},      Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
+			row{NewChecker(""),      NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""),      NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker("#ff0000"), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""),      NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""),      NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""),      NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""),      NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
 		}
-		ok := got.Claim(Checker{"red"}, 2)
+		ok := got.Claim(NewChecker("#ff0000"), 2)
 
 		if !ok {
 			t.Error("tried to claim a field, but failed")
@@ -215,20 +215,20 @@ func TestBoard(t *testing.T) {
 			t.Error("there wasn't supposed to be a winner")
 		}
 
-		if !winner.Equal(Checker{}) {
+		if !winner.Equal(NewChecker("")) {
 			t.Error("no one wins here")
 		}
 	})
 
 	t.Run("row win", func(t *testing.T) {
 		r := Board{
-			row{Checker{}, Checker{"red"}, Checker{"red"}, Checker{"red"}, Checker{"red"}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
+			row{NewChecker(""), NewChecker("#ff0000"), NewChecker("#ff0000"), NewChecker("#ff0000"), NewChecker("#ff0000"), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
 		}
 
 		winner, won := r.CheckWin()
@@ -237,20 +237,20 @@ func TestBoard(t *testing.T) {
 			t.Error("there was supposed to be a winner")
 		}
 
-		if !winner.Equal(Checker{"red"}) {
-			t.Error("red was supposed to win")
+		if !winner.Equal(NewChecker("#ff0000")) {
+			t.Error("#ff0000 was supposed to win")
 		}
 	})
 
 	t.Run("column win", func(t *testing.T) {
 		r := Board{
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{"red"}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{"red"}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{"red"}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{"red"}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{"red"}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
-			row{Checker{}, Checker{}, Checker{}, Checker{}, Checker{}, Checker{}},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker("#ff0000"), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker("#ff0000"), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker("#ff0000"), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker("#ff0000"), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker("#ff0000"), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
+			row{NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker(""), NewChecker("")},
 		}
 
 		winner, won := r.CheckWin()
@@ -259,20 +259,20 @@ func TestBoard(t *testing.T) {
 			t.Error("there was supposed to be a winner")
 		}
 
-		if !winner.Equal(Checker{"red"}) {
+		if !winner.Equal(NewChecker("#ff0000")) {
 			t.Error("red was supposed to win this")
 		}
 	})
 
 	t.Run("diagonal win", func(t *testing.T) {
 		r := Board{
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{"red"}, Checker{},      Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{"red"}, Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{"red"}, Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{"red"}, Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{},      Checker{}},
+			row{NewChecker(""), NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker("")},
+			row{NewChecker(""), NewChecker("#ff0000"), NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker("")},
+			row{NewChecker(""), NewChecker(""),      NewChecker("#ff0000"), NewChecker(""),      NewChecker(""),      NewChecker("")},
+			row{NewChecker(""), NewChecker(""),      NewChecker(""),      NewChecker("#ff0000"), NewChecker(""),      NewChecker("")},
+			row{NewChecker(""), NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker("#ff0000"), NewChecker("")},
+			row{NewChecker(""), NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker("")},
+			row{NewChecker(""), NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker(""),      NewChecker("")},
 		}
 
 		winner, won := r.CheckWin()
@@ -281,20 +281,20 @@ func TestBoard(t *testing.T) {
 			t.Error("there was supposed to be a winner")
 		}
 
-		if !winner.Equal(Checker{"red"}) {
+		if !winner.Equal(NewChecker("#ff0000")) {
 			t.Error("red was supposed to win this")
 		}
 	})
 
 	t.Run("diagonal win opposite", func(t *testing.T) {
 		r := Board{
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{"red"}, Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{"red"}, Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{"red"}, Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{"red"}, Checker{},      Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{},      Checker{}},
-			row{Checker{}, Checker{},      Checker{},      Checker{},      Checker{},      Checker{}},
+			row{NewChecker(""), NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker("")},
+			row{NewChecker(""), NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker("#ff0000"), NewChecker("")},
+			row{NewChecker(""), NewChecker(""),        NewChecker(""),        NewChecker("#ff0000"), NewChecker(""),        NewChecker("")},
+			row{NewChecker(""), NewChecker(""),        NewChecker("#ff0000"), NewChecker(""),        NewChecker(""),        NewChecker("")},
+			row{NewChecker(""), NewChecker("#ff0000"), NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker("")},
+			row{NewChecker(""), NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker("")},
+			row{NewChecker(""), NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker(""),        NewChecker("")},
 		}
 
 		winner, won := r.CheckWin()
@@ -303,7 +303,7 @@ func TestBoard(t *testing.T) {
 			t.Error("there was supposed to be a winner")
 		}
 
-		if !winner.Equal(Checker{"red"}) {
+		if !winner.Equal(NewChecker("#ff0000")) {
 			t.Error("red was supposed to win this")
 		}
 	})

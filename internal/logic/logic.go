@@ -1,7 +1,30 @@
 package connect_logic
 
+import (
+	"fmt"
+	"slices"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
+)
+
+func NewChecker(colorHex string) Checker {
+	if colorHex == "" {
+		return Checker{
+			Color: colorHex,
+			field: "    \n    ",
+		}
+	}
+	str := colorHex[0:1]
+	return Checker{
+		Color: colorHex,
+		field: fmt.Sprintf("%s%s%s%s\n%s%s%s%s", str, str, str, str, str, str, str, str),
+	}
+}
+
 type Checker struct {
 	Color string
+	field string
 }
 
 func (c Checker) Equal(ch Checker) bool {
@@ -23,7 +46,7 @@ func (r *row) claim(c Checker) bool {
 func makeRow() row {
 	r := make(row, 6)
 	for i := 0; i < 6; i++ {
-		r[i] = Checker{}
+		r[i] = NewChecker("")
 	}
 	return r
 }
@@ -44,7 +67,7 @@ func (r row) checkWin() (Checker, bool) {
 			return previous, true
 		}
 	}
-	return Checker{}, false
+	return NewChecker(""), false
 }
 
 type Board []row
@@ -107,5 +130,64 @@ func (b Board) CheckWin() (Checker, bool) {
 		}
 	}
 
-	return Checker{}, false
+	return NewChecker(""), false
+}
+
+func (b Board) tableCompliant() ([][]Checker, [][]string) {
+	var chkrs [][]Checker
+	for i := range b {
+		slices.Reverse(b[i])
+	}
+	for i := range b[0] {
+		var row []Checker
+		for _, v := range b {
+			row = append(row, v[i])
+		}
+		chkrs = append(chkrs, row)
+	}
+	strs := [][]string{
+		make([]string, 7),
+		make([]string, 7),
+		make([]string, 7),
+		make([]string, 7),
+		make([]string, 7),
+		make([]string, 7),
+	}
+	for i, ch := range chkrs {
+		for j, v := range ch {
+			strs[i][j] = v.field
+		}
+	}
+	return chkrs, strs
+}
+
+func (b Board) Clone() Board {
+	cpy := slices.Clone(b)
+	for i := range cpy {
+		cpy[i] = slices.Clone(b[i])
+	}
+	return cpy
+}
+
+func (b Board) ToTable() string {
+	rows, strings := b.tableCompliant()
+	return table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("#0000ff"))).
+		Headers("1", "2", "3", "4", "5", "6", "7").
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == 0 {
+				return lipgloss.NewStyle().Align(lipgloss.Center)
+			}
+
+			if rows[row-1][col].Color == "" {
+				return lipgloss.NewStyle()
+			}
+
+			return lipgloss.NewStyle().
+				Foreground(lipgloss.Color(rows[row-1][col].Color)).
+				Background(lipgloss.Color(rows[row-1][col].Color))
+		}).
+		Rows(strings...).
+		Render()
 }
