@@ -3,7 +3,6 @@ package browser
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -70,18 +69,9 @@ func (m Model) View() string {
 		str = append(str, fmt.Sprintf("%s %s", cursor, v))
 	}
 
-	return lipgloss.NewStyle().Width(width).Height(height).Align(lipgloss.Center).Render(heightCenter(style.Render(
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, style.Render(
 		lipgloss.JoinVertical(lipgloss.Center, str...),
-	)))
-}
-
-func heightCenter(in string) string {
-	sli := strings.Split(in, "\n")
-	desired := (height - len(sli)) / 2
-	filler := make([]string, desired)
-	sli = append(filler, sli...)
-	sli = append(sli, make([]string, desired)...)
-	return strings.Join(sli, "\n")
+	))
 }
 
 func New(title string, items []string) (string, error) {

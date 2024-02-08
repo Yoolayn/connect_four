@@ -9,7 +9,7 @@ import (
 
 func main() {
 	items := []string{uuid.NewString()+ ": game1", uuid.NewString()+ ": game2", uuid.NewString()+ ": game3"}
-	selected, err := browser.New(items)
+	selected, err := browser.New("games", items)
 	if err != nil {
 		panic(err)
 	}
