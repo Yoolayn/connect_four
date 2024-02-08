@@ -3,17 +3,32 @@ package browser
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"golang.org/x/term"
 )
 
-var ErrNothingChosen = errors.New("no entry was selected, aborting...")
+var (
+	ErrNothingChosen = errors.New("no entry was selected, aborting...")
+	height           int
+	width            int
+)
+
+var style = lipgloss.NewStyle().
+	BorderStyle(lipgloss.NormalBorder()).
+	BorderForeground(lipgloss.Color("63")).
+	Padding(5).
+	PaddingTop(2).
+	PaddingBottom(2)
 
 type Model struct {
 	items    []string
 	cursor   int
 	selected string
 	error    error
+	title    string
 }
 
 func (m Model) Init() tea.Cmd {
@@ -44,7 +59,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	str := "Games:\n\n"
+	str := []string{m.title, "", ""}
 
 	for i, v := range m.items {
 		cursor := " "
@@ -52,26 +67,37 @@ func (m Model) View() string {
 			cursor = ">"
 		}
 
-		str += fmt.Sprintf("%s %s\n", cursor, v)
+		str = append(str, fmt.Sprintf("%s %s", cursor, v))
 	}
 
-	return str
+	return lipgloss.NewStyle().Width(width).Height(height).Align(lipgloss.Center).Render(heightCenter(style.Render(
+		lipgloss.JoinVertical(lipgloss.Center, str...),
+	)))
 }
 
-func New(items []string, altScreen bool) (string, error) {
-	p := func() *tea.Program {
-		m := Model{
-			items:    items,
-			cursor:   0,
-			error:    nil,
-			selected: "",
-		}
-		if altScreen {
-			return tea.NewProgram(m, tea.WithAltScreen())
-		} else {
-			return tea.NewProgram(m)
-		}
-	}()
+func heightCenter(in string) string {
+	sli := strings.Split(in, "\n")
+	desired := (height - len(sli)) / 2
+	filler := make([]string, desired)
+	sli = append(filler, sli...)
+	sli = append(sli, make([]string, desired)...)
+	return strings.Join(sli, "\n")
+}
+
+func New(title string, items []string) (string, error) {
+	var err error
+	width, height, err = term.GetSize(0)
+	if err != nil {
+		return "", err
+	}
+
+	p := tea.NewProgram(Model{
+		items:    items,
+		cursor:   0,
+		error:    nil,
+		selected: "",
+		title:    title,
+	}, tea.WithAltScreen())
 	m, err := p.Run()
 	if err != nil {
 		return "", err

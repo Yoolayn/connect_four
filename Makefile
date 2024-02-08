@@ -3,6 +3,9 @@ all: test client server
 test: reports
 	go test -v -cover ./... -coverprofile=reports/report.cover
 
+reports:
+	mkdir reports
+
 server:
 	go build -race -o bin/server cmd/server/*.go
 
@@ -27,4 +30,4 @@ clean:
 	rm -f reports/*
 	rm -rf client/dist/*
 
-.PHONY: test build clean reports coverage client
+.PHONY: test build clean coverage client
