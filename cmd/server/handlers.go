@@ -26,7 +26,7 @@ func addHandlers(r *gin.Engine) {
 			return Credentials{}, ErrType
 		}
 		return body.Credentials, nil
-		}), joinGame)
+	}), joinGame)
 
 	r.PUT("/games/:id/move", decoder(new(Move)), authorizer(func(bdy interface{}) (Credentials, error) {
 		body, ok := bdy.(*Move)
@@ -81,7 +81,7 @@ func addHandlers(r *gin.Engine) {
 			logger.Debug("login", "get body", ErrInternal)
 			return
 		}
-		
+
 		bdy, ok := body.(*Credentials)
 		if !ok {
 			c.AbortWithStatusJSON(newErr(ErrType))
@@ -219,6 +219,8 @@ func leaveGame(c *gin.Context) {
 		return
 	}
 
+	games[uid] = game
+
 	c.Status(http.StatusAccepted)
 }
 
@@ -249,7 +251,14 @@ func deleteGame(c *gin.Context) {
 		return
 	}
 
-	if game.Player1.User.Login != bdy.Login && game.Player2.User.Login != bdy.Login {
+	usr, ok := collections["users"].Get(bdy.Login)
+	if !ok {
+		c.AbortWithStatusJSON(newErr(ErrUserNotFound))
+		logger.Debug("deleteGame", "get user", ErrUserNotFound)
+		return
+	}
+
+	if !(game.Player1.User.Login == usr.Login || game.Player2.User.Login == usr.Login || usr.IsAdmin) {
 		c.AbortWithStatusJSON(newErr(ErrNotAuthorized))
 		logger.Debug("deleteGame", "delete game", ErrNotAuthorized)
 		return
@@ -443,7 +452,7 @@ func updateTitle(c *gin.Context) {
 		return
 	}
 
-	if bdy.Credentials.Login != game.Player1.User.Login || bdy.Credentials.Login != game.Player2.User.Login {
+	if bdy.Credentials.Login != game.Player1.User.Login && bdy.Credentials.Login != game.Player2.User.Login {
 		c.AbortWithStatusJSON(newErr(ErrNotInGame))
 		logger.Debug("updateTitle", "change title", ErrNotInGame)
 		return
@@ -501,28 +510,39 @@ func makeMove(c *gin.Context) {
 
 	if bdy.Row > 6 || bdy.Row < 0 {
 		c.AbortWithStatusJSON(newErr(ErrOutOfBounds))
+		logger.Debug("makeMove", "bound checker", ErrOutOfBounds)
 		return
 	}
 
 	var chkr connectFour.Checker
 	if bdy.Credentials.Login == game.Player1.User.Login {
-		chkr = connectFour.Checker{Color: game.Player1.Color}
+		chkr = connectFour.NewChecker(game.Player1.Color)
 	} else if bdy.Credentials.Login == game.Player2.User.Login {
-		chkr = connectFour.Checker{Color: game.Player2.Color}
+		chkr = connectFour.NewChecker(game.Player2.Color)
 	}
 
 	if chkr.Color == "" {
 		c.AbortWithStatusJSON(newErr(ErrNotInGame))
+		logger.Debug("makeMove", "color", ErrNotInGame)
 		return
 	}
 
 	ok = game.Board.Claim(chkr, bdy.Row)
 	if !ok {
 		c.AbortWithStatusJSON(newErr(ErrFieldTaken))
+		logger.Debug("makeMove", "claim", ErrFieldTaken)
 		return
 	}
 
+	ch, ok := game.Board.CheckWin()
+	if ok {
+		game.Winner = ch
+		game.Finished = true
+	}
+
 	games[uid] = game
+
+	c.Status(http.StatusAccepted)
 }
 
 func simpleCred(bdy interface{}) (Credentials, error) {

@@ -10,6 +10,8 @@ var (
 	ErrEncoding        = errors.New("failed to marshal json")
 	ErrGameFull        = errors.New("game is full already")
 	ErrParamReq        = errors.New("search parameter is required")
+	ErrRowTaken        = errors.New("row is taken")
+	ErrForbidden       = errors.New("action forbidden")
 	ErrNewParams       = errors.New("new command only accepts user/game")
 	ErrWrongCode       = errors.New("wrong code")
 	ErrLoginTaken      = errors.New("login taken")

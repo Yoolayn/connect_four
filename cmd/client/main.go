@@ -229,4 +229,7 @@ func main() {
 	cmds["/deop"] = func(args string) error {
 		return removeAdmin(args)
 	}
+	cmds["/delete"] = func(args string) error {
+		return deleteGame()
+	}
 }

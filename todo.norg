@@ -41,13 +41,7 @@
   - (x) delete account
   - (x) make admin
   - (x) remove admin
-
-** requires bubbletea
-  - ( ) specific game/user by search > list
-  - ( ) rename game
-  - ( ) leave game
-
-** next:
-   - ( ) join game - will start bubble tea
-
-** board with bubbletea after all
+  - (x) join game - will start bubble tea
+  - (x) specific game/user by search > list
+  - (x) rename game
+  - (x) leave game

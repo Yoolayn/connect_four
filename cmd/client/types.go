@@ -36,10 +36,12 @@ func (u User) String() string {
 }
 
 type Game struct {
-	Board   logic.Board `json:"board"`
-	Title   string      `json:"title"`
-	Player1 Player      `json:"player1"`
-	Player2 Player      `json:"player2"`
+	Board    logic.Board   `json:"board"`
+	Title    string        `json:"title"`
+	Player1  Player        `json:"player1"`
+	Player2  Player        `json:"player2"`
+	Finished bool          `json:"finished"`
+	Winner   logic.Checker `json:"winner"`
 }
 
 func (g Game) String() string {

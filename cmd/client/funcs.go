@@ -34,6 +34,14 @@ func join() error {
 		return err
 	}
 
+	switch res.StatusCode {
+	case http.StatusOK:
+	case http.StatusNotFound:
+		return ErrUnknown
+	default:
+		return ErrUnknown
+	}
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -123,6 +131,14 @@ func join() error {
 		return err
 	}
 
+	switch res.StatusCode {
+	case http.StatusNotFound:
+		return ErrGameNotFound
+	case http.StatusOK:
+	default:
+		return ErrUnknown
+	}
+
 	var game Game
 	bits, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -134,7 +150,7 @@ func join() error {
 		return err
 	}
 
-	start, err := InitialModel(bodyResp.Position, game)
+	start, err := InitialModel(bodyResp.Position, game, bodyResp.Game)
 	if err != nil {
 		return err
 	}
@@ -153,6 +169,15 @@ func games() error {
 	if err != nil {
 		return err
 	}
+
+	switch res.StatusCode {
+	case http.StatusOK:
+	case http.StatusNotFound:
+		return ErrUnknown
+	default:
+		return ErrUnknown
+	}
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -190,6 +215,14 @@ func search(args string) error {
 		response, err := http.Get(baseurl("/search?") + split[0] + "=" + pattern)
 		if err != nil {
 			return err
+		}
+		switch response.StatusCode {
+		case http.StatusOK:
+		case http.StatusAccepted:
+		case http.StatusNotFound:
+			return ErrUnknown
+		default:
+			return ErrUnknown
 		}
 		data, err := io.ReadAll(response.Body)
 		if err != nil {
@@ -369,7 +402,7 @@ func newGame() error {
 func users() error {
 	r, err := http.Get(baseurl("/users"))
 	if err != nil {
-		return ErrRequest
+		return err
 	}
 	switch r.StatusCode {
 	case http.StatusOK:
@@ -488,6 +521,10 @@ func changePassword(args string) error {
 }
 
 func deleteUser() error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
 	line := liner.NewLiner()
 	defer line.Close()
 	line.SetCtrlCAborts(false)
@@ -620,4 +657,82 @@ func removeAdmin(args string) error {
 	default:
 		return ErrUnknown
 	}
+}
+
+func deleteGame() error {
+	if err := creds.Logged(); err != nil {
+		return err
+	}
+
+	r, err := http.Get(baseurl("/games"))
+	if err != nil {
+		return err
+	}
+
+	switch r.StatusCode {
+	case http.StatusOK:
+	case http.StatusAccepted:
+	case http.StatusNotFound:
+		return ErrUnknown
+	default:
+		return ErrUnknown
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	var gms map[uuid.UUID]Game
+	err = json.Unmarshal(body, &gms)
+	if err != nil {
+		return err
+	}
+
+	var gmsKeys []string
+	gmsStr := make(map[string]Game)
+	for k, v := range gms {
+		gmsStr[k.String()] = v
+		gmsKeys = append(gmsKeys, k.String())
+	}
+
+	chosen, err := browser.New("Choose to delete:", gmsKeys)
+	if err != nil {
+		return err
+	}
+
+	payload := struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}{
+		Login:    creds.Login,
+		Password: creds.Password,
+	}
+
+	bitties, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, baseurl("/games/"+chosen), bytes.NewBuffer(bitties))
+	if err != nil {
+		return err
+	}
+
+	c := &http.Client{}
+	res, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+
+	switch res.StatusCode {
+	case http.StatusOK:
+		fmt.Println("game deleted")
+	case http.StatusForbidden:
+		return ErrAdminRequired
+	default:
+		return ErrRequest
+	}
+
+	return nil
 }

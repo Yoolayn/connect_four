@@ -1,7 +1,6 @@
 package connect_logic
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/charmbracelet/lipgloss"
@@ -15,10 +14,9 @@ func NewChecker(colorHex string) Checker {
 			field: "    \n    ",
 		}
 	}
-	str := colorHex[0:1]
 	return Checker{
 		Color: colorHex,
-		field: fmt.Sprintf("%s%s%s%s\n%s%s%s%s", str, str, str, str, str, str, str, str),
+		field: "xxxx\nxxxx",
 	}
 }
 
@@ -181,12 +179,13 @@ func (b Board) ToTable() string {
 			}
 
 			if rows[row-1][col].Color == "" {
-				return lipgloss.NewStyle()
+				return lipgloss.NewStyle().Width(4).Height(2)
 			}
 
 			return lipgloss.NewStyle().
 				Foreground(lipgloss.Color(rows[row-1][col].Color)).
-				Background(lipgloss.Color(rows[row-1][col].Color))
+				Background(lipgloss.Color(rows[row-1][col].Color)).
+				Width(4).Height(2)
 		}).
 		Rows(strings...).
 		Render()

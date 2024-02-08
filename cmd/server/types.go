@@ -80,14 +80,14 @@ func (c collection) GetAll(result interface{}) bool {
 }
 
 func (c collection) Search(pattern string, result interface{}) bool {
-	logger.Debug("Search on collection " + c.name, "pattern", pattern)
+	logger.Debug("Search on collection "+c.name, "pattern", pattern)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*200)
 	defer cancel()
 
 	pipeline := mongo.Pipeline{
 		bson.D{
 			{Key: "$match", Value: bson.D{
-				{ Key: "login", Value: primitive.Regex{Pattern: pattern, Options: "i"} },
+				{Key: "login", Value: primitive.Regex{Pattern: pattern, Options: "i"}},
 			}},
 		},
 	}
@@ -104,7 +104,7 @@ func (c collection) Search(pattern string, result interface{}) bool {
 		return false
 	}
 
-	logger.Debug("Search on collection " + c.name, "status", true)
+	logger.Debug("Search on collection "+c.name, "status", true)
 	return true
 }
 
@@ -173,10 +173,12 @@ type NewPassword struct {
 }
 
 type Game struct {
-	Board   game.Board `json:"board"`
-	Title   string     `json:"title"`
-	Player1 Player     `json:"player1"`
-	Player2 Player     `json:"player2"`
+	Board    game.Board   `json:"board"`
+	Title    string       `json:"title"`
+	Player1  Player       `json:"player1"`
+	Player2  Player       `json:"player2"`
+	Finished bool         `json:"finished"`
+	Winner   game.Checker `json:"winner"`
 }
 
 func (u User) ToDB() struct {
