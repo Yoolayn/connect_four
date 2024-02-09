@@ -399,6 +399,66 @@ func newGame() error {
 	}
 }
 
+func user() error {
+	r, err := http.Get(baseurl("/users"))
+	if err != nil {
+		return err
+	}
+
+	switch r.StatusCode {
+	case http.StatusOK:
+	default:
+		return ErrUnknown
+	}
+
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	var usrs []User
+	err = json.Unmarshal(bytes, &usrs)
+	if err != nil {
+		return nil
+	}
+
+	var usrKeys []string
+	for _, v := range usrs {
+		usrKeys = append(usrKeys, v.Login)
+	}
+
+	chosen, err := browser.New("Users:", usrKeys)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.Get(baseurl("/users/" + chosen))
+	if err != nil {
+		return err
+	}
+
+	switch res.StatusCode {
+	case http.StatusOK:
+	default:
+		return ErrRequest
+	}
+
+	bitties, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	var usr User
+	err = json.Unmarshal(bitties, &usr)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(usr.String())
+
+	return nil
+}
+
 func users() error {
 	r, err := http.Get(baseurl("/users"))
 	if err != nil {

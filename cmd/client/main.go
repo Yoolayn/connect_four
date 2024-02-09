@@ -232,4 +232,7 @@ func main() {
 	cmds["/delete"] = func(args string) error {
 		return deleteGame()
 	}
+	cmds["/user"] = func(args string) error {
+		return user()
+	}
 }
