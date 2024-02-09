@@ -164,6 +164,62 @@ func join() error {
 	return nil
 }
 
+func game() error {
+	res, err := http.Get(baseurl("/games"))
+	if err != nil {
+		return err
+	}
+
+	switch res.StatusCode {
+	case http.StatusOK:
+	case http.StatusNotFound:
+		return ErrUnknown
+	default:
+		return ErrUnknown
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	var gms map[uuid.UUID]Game
+	err = json.Unmarshal(body, &gms)
+	if err != nil {
+		return err
+	}
+
+	var gmsStr []string
+	for k := range gms {
+		gmsStr = append(gmsStr, k.String())
+	}
+
+	chosen, err := browser.New("Games:", gmsStr)
+	if err != nil {
+		return err
+	}
+
+	r, err := http.Get(baseurl("/games/"+chosen))
+	if err != nil {
+		return err
+	}
+
+	bitties, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	var game Game
+	err = json.Unmarshal(bitties, &game)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(game.String())
+
+	return nil
+}
+
 func games() error {
 	res, err := http.Get(baseurl("/games"))
 	if err != nil {

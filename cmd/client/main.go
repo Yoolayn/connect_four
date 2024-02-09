@@ -235,4 +235,7 @@ func main() {
 	cmds["/user"] = func(args string) error {
 		return user()
 	}
+	cmds["/game"] = func(args string) error {
+		return game()
+	}
 }
