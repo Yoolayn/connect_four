@@ -9,3 +9,8 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
+  hivemq:
+    image: hivemq/hivemq4
+    ports:
+      - "8081:8080"
+      - "1883:1883"

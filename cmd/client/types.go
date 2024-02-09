@@ -6,6 +6,11 @@ import (
 	logic "gitlab.com/Yoolayn/connect_four/internal/logic"
 )
 
+type chatMsg struct {
+	Login   string `json:"login"`
+	Message string `json:"message"`
+}
+
 type User struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`

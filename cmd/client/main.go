@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/peterh/liner"
 	"golang.org/x/term"
 )
@@ -33,10 +36,11 @@ func (c credentials) Status() error {
 }
 
 var (
-	cmds   = make(map[string]func(string) error, 0)
-	height = 0
-	buffer bytes.Buffer
-	creds  = credentials{}
+	cmds       = make(map[string]func(string) error, 0)
+	height     = 0
+	buffer     bytes.Buffer
+	creds      = credentials{}
+	mqttClient mqtt.Client
 )
 
 func processing(line string) error {
@@ -65,7 +69,22 @@ func dispatch(cmd, args string) error {
 			return ErrCmdNotFound
 		} else {
 			if err := creds.Logged(); err == nil {
-				fmt.Println(creds.Login + ": " + cmd + " " + args)
+				msgStruct := struct {
+					Login   string `json:"login"`
+					Message string `json:"message"`
+				}{
+					Login:   creds.Login,
+					Message: cmd + " " + args,
+				}
+				bitties, err := json.Marshal(msgStruct)
+				if err != nil {
+					return err
+				}
+
+				if token := mqttClient.Publish("chat", 0, true, string(bitties)); token.Wait() && token.Error() != nil {
+					return token.Error()
+				}
+
 				return nil
 			} else {
 				fmt.Println("not logged in")
@@ -84,13 +103,13 @@ func fullClear() {
 	fmt.Print("\033[2J\033[H")
 }
 
-// func newMessage(content string) {
-// 	fmt.Print("\033[s")
-// 	fmt.Print("\033[A")
-// 	fmt.Println("\n" + content)
-// 	fmt.Print(">>= ")
-// 	fmt.Print("\033[u")
-// }
+func newMessage(content string) {
+	fmt.Print("\033[s")
+	fmt.Print("\033[A")
+	fmt.Println("\n" + content)
+	fmt.Print(">>= ")
+	fmt.Print("\033[u")
+}
 
 func prompter() {
 	moveBottom()
@@ -126,6 +145,9 @@ func prompter() {
 }
 
 func main() {
+	defer func() {
+		mqttClient.Disconnect(250)
+	}()
 	defer prompter()
 	_, h, err := term.GetSize(0)
 	if err != nil {
@@ -238,4 +260,25 @@ func main() {
 	cmds["/game"] = func(args string) error {
 		return game()
 	}
+
+	opts := mqtt.NewClientOptions().AddBroker("tcp://0.0.0.0:1883").SetClientID(uuid.NewString())
+	mqttClient = mqtt.NewClient(opts)
+	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
+	}
+	mqttClient.Subscribe("chat", 0, func(client mqtt.Client, msg mqtt.Message) {
+		msgStruct := struct {
+			Login   string `json:"login"`
+			Message string `json:"message"`
+		}{}
+		data := msg.Payload()
+		err := json.Unmarshal(data, &msgStruct)
+		if err != nil {
+			fmt.Print(err)
+			return
+		}
+		if creds.Login != msgStruct.Login {
+			newMessage(msgStruct.Login + ": " + msgStruct.Message)
+		}
+	})
 }

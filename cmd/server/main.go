@@ -14,6 +14,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,7 +26,7 @@ import (
 const mongoUri = "mongodb://localhost:27017"
 
 var (
-	games = make(map[uuid.UUID]Game, 1)
+	games = make(map[uuid.UUID]Game, 0)
 	creds = options.Credential{
 		Username: "root",
 		Password: "example",
@@ -33,7 +34,8 @@ var (
 	client      *mongo.Client
 	db          *mongo.Database
 	collections = make(map[string]collection)
-	logger *log.Logger
+	logger      *log.Logger
+	mqttClient  mqtt.Client
 )
 
 func searchGame(pattern string) []Game {
@@ -156,6 +158,16 @@ func newLogger() *os.File {
 	return file
 }
 
+func mqttStart() {
+	opts := mqtt.NewClientOptions().AddBroker("tcp://0.0.0.0:1883").SetClientID("server")
+	mqttClient = mqtt.NewClient(opts)
+	go func() {
+		if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+			panic(token.Error())
+		}
+	}()
+}
+
 func main() {
 	file := newLogger()
 	if file != nil {
@@ -166,6 +178,8 @@ func main() {
 	logger.SetStyles(newStyle())
 	setLevel()
 	logger.Info("starting")
+
+	mqttStart()
 
 	r := gin.Default()
 	r.Use(cors.New(corsConfig()))

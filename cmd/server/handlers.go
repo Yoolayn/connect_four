@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -542,6 +543,24 @@ func makeMove(c *gin.Context) {
 
 	games[uid] = game
 
+	bitties, err := json.Marshal(game)
+	if err != nil {
+		c.AbortWithStatusJSON(newErr(ErrInternal))
+		logger.Debug("makeMove", "to json", err)
+		return
+	}
+
+	topic := "game:"+uid.String()
+	message := string(bitties)
+	token := mqttClient.Publish(topic, 0, true, message)
+
+	go func() {
+		ok := token.Wait()
+		if !ok {
+			logger.Error("makeMove", "failed to publish the message", uid.String())
+		}
+	}()
+
 	c.Status(http.StatusAccepted)
 }
 
@@ -595,6 +614,7 @@ func newGame(c *gin.Context) {
 		Player1: Player{},
 		Player2: Player{},
 	}
+
 	c.String(http.StatusCreated, id.String())
 }
 

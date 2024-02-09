@@ -3,16 +3,20 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 	logic "gitlab.com/Yoolayn/connect_four/internal/logic"
 	"golang.org/x/term"
 )
+
+type mqttMsg string
 
 type Model struct {
 	game   Game
@@ -23,6 +27,7 @@ type Model struct {
 	uuid   uuid.UUID
 	error  error
 	input  textinput.Model
+	sub    chan string
 }
 
 func getter(m Model) (tea.Model, tea.Cmd) {
@@ -61,6 +66,12 @@ func getter(m Model) (tea.Model, tea.Cmd) {
 }
 
 func InitialModel(p int, g Game, u uuid.UUID) (Model, error) {
+	ch := make(chan string)
+
+	mqttClient.Subscribe("game:"+u.String(), 0, func(client mqtt.Client, msg mqtt.Message) {
+		ch <- string(msg.Payload())
+	})
+
 	width, height, err := term.GetSize(0)
 	if err != nil {
 		return Model{}, err
@@ -85,6 +96,7 @@ func InitialModel(p int, g Game, u uuid.UUID) (Model, error) {
 		uuid:   u,
 		error:  err,
 		input:  ti,
+		sub:    ch,
 	}, nil
 }
 
@@ -93,7 +105,7 @@ var helpInGame = lipgloss.JoinVertical(
 	[]string{
 		"0, 1, 2, 3, 4, 5, 6, 7 - make a move",
 		"enter - confirm a move",
-		"c - change name; m - toggle mqtt",
+		"c - change name",
 		"d - delete game",
 		"r - refresh; q - quit",
 	}...,
@@ -156,7 +168,7 @@ func (m Model) View() string {
 		if m.game.Player1.User.Login == m.player.User.Login {
 			return []string{"You:", m.game.Player1.User.String(), p1c, "", m.game.Player2.User.String(), p2c, "", "", "", ""}
 		} else {
-			return []string{"", m.game.Player1.User.String(), "", "You:", m.game.Player2.User.String()}
+			return []string{"", m.game.Player1.User.String(), p1c, "", "You:", m.game.Player2.User.String(), p2c}
 		}
 	}()...)
 	finishedProduct := lipgloss.JoinHorizontal(lipgloss.Center, bAndHelp, info)
@@ -269,6 +281,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "q":
 
+			if token := mqttClient.Unsubscribe("game/" + m.uuid.String()); token.Wait() && token.Error() != nil {
+				panic(token.Error())
+			}
 			json, err := json.Marshal(creds)
 			if err != nil {
 				m.error = err
@@ -370,12 +385,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "c":
 			m.input.Focus()
 			return m, textinput.Blink
-		case "m":
-			if m.error != nil {
-				m.error = nil
-			} else {
-				m.error = ErrNotImplemented
-			}
 		case "d":
 			payload := struct {
 				Login    string `json:"login"`
@@ -415,10 +424,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+	case mqttMsg:
+		var newGameState Game
+		err := json.Unmarshal([]byte(msg), &newGameState)
+		if err != nil {
+			m.error = err
+			return m, nil
+		}
+		m.game = newGameState
+		m.error = errors.New("update")
+		return m, nil
 	}
 	return m, nil
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return func() tea.Msg {
+		return string(<-m.sub)
+	}
 }
